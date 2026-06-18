@@ -1,0 +1,28 @@
+
+def create_rest_gjf(header, basisets, Elem, Coords, name):
+    with open('../'+name+'/input'+name+'.gjf', 'w') as out:
+        out.write(header)
+        for elem, poss in zip(Elem, Coords):
+            out.write(f'{elem}  {float(poss[0]):.6f}   {float(poss[1]):.6f}   {float(poss[2]):.6f} {intro}')
+        out.write(f'{intro}')
+        out.write(basisets)
+    return
+
+if __name__ == '__main__':
+        symbols_list, coordinates_list, variable_dict = extract_final_positions(log_file_path)
+        header, basisets, header_notmod, poss_part = read_opt_gjf(optgjf_path)
+        
+        # Write xyz the results for all sections
+        with open('Opt'+log_file_path.split('.')[0]+'.xyz', 'w') as out:
+            for idx, (symbols, coordinates) in enumerate(zip(symbols_list, coordinates_list), start=1):
+                out.write(f'{len(coordinates)} {intro}')
+                out.write(f"Timestep {idx} {intro}")
+                for symbol, coords in zip(symbols, coordinates):
+                    out.write(f"{elem_dict[symbol]} {coords[0]}, {coords[1]}, {coords[2]}{intro}")
+        
+	for i in range
+        create_gjf(header, basisets, [elem_dict[x] for x in symbols], coordinates)
+        for I in range(N_folder):
+            i = ('0'*(len(str(N_folder))-len(str(I+1)))) + str(I+1)
+            coordinates,_ = move(coordinates, [])
+            create_rest_gjf(header, basisets, [elem_dict[x] for x in symbols], coordinates, Folder_name+'_'+i)

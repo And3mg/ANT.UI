@@ -1,0 +1,35 @@
+
+def create_next_opt(header_notmod, poss_part, variable_dict, basisets):
+    global Next_folder
+    try:
+        with open('../'+Next_folder+'/input'+Next_folder+'.gjf', 'w') as out:
+            out.write(header_notmod)
+            poss_part, variable_dict = move(poss_part, variable_dict)
+            for poss in poss_part:
+                try:
+                    out.write(f'{poss[0]}   {poss[1]}   {float(poss[2]):.6f}    {float(poss[3]):.6f}   {float(poss[4]):.6f} {intro}')
+                except:
+                    out.write(f'{poss[0]}   {poss[1]}   {poss[2]}    {poss[3]}   {poss[4]} {intro}')
+            out.write('Variables: \n')
+            for name, value in zip(variable_dict.keys(), variable_dict.values()):
+                out.write(f'{name} = {value} {intro}')
+            out.write(f'{intro}')
+            out.write(basisets)
+    except:
+        pass
+    return
+
+if __name__ == '__main__':
+        symbols_list, coordinates_list, variable_dict = extract_final_positions(log_file_path)
+        header, basisets, header_notmod, poss_part = read_opt_gjf(optgjf_path)
+        
+        # Write xyz the results for all sections
+        with open('Opt'+log_file_path.split('.')[0]+'.xyz', 'w') as out:
+            for idx, (symbols, coordinates) in enumerate(zip(symbols_list, coordinates_list), start=1):
+                out.write(f'{len(coordinates)} {intro}')
+                out.write(f"Timestep {idx} {intro}")
+                for symbol, coords in zip(symbols, coordinates):
+                    out.write(f"{elem_dict[symbol]} {coords[0]}, {coords[1]}, {coords[2]}{intro}")
+        
+        create_gjf(header, basisets, [elem_dict[x] for x in symbols], coordinates)
+        create_next_opt(header_notmod, poss_part, variable_dict, basisets)

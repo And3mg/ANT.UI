@@ -1,0 +1,23 @@
+# Requirements for running the ANT Input Editor desktop application
+# (DFT_editor.py and its GUI workflow)
+#
+# Install with:
+#   pip install -r requirements.txt
+#
+# Tested on Python >=3.8. customtkinter requires Python >=3.7 (PyPI).
+
+numpy>=1.21
+matplotlib>=3.5
+customtkinter>=5.2
+
+# --- Not installable via pip ---
+# tkinter is part of the Python standard library, but on Linux it ships as a
+# separate OS package and is NOT bundled with every Python install.
+# If "import tkinter" fails, install it via your system package manager, e.g.:
+#   Debian/Ubuntu : sudo apt install python3-tk
+#   Fedora        : sudo dnf install python3-tkinter
+#   Arch          : sudo pacman -S tk
+#   macOS/Windows : included with the official python.org installer
+#
+# customtkinter automatically installs its own dependency (darkdetect) via pip,
+# no need to list it separately here.

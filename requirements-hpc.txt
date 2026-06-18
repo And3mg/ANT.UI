@@ -1,0 +1,21 @@
+# Minimal requirements for the HPC/cluster side of the workflow.
+#
+# This file is NOT for the desktop editor. It documents the only dependency
+# needed on the compute cluster to run the link_opt.py scripts that
+# ANT Input Editor generates (via PythonRutines/*.txt templates) for:
+#   - geometry optimization parsing/relaunching (Main.txt)
+#   - absolute energy bookkeeping (Main_EABS.txt)
+#   - chained grid/pull/rotation steps (Main_OptFirstStep.txt, Main_OptAllSteps.txt)
+#
+# These scripts only need array/coordinate handling, so a barebones
+# Python 3 install plus numpy is sufficient — no matplotlib, no customtkinter,
+# no GUI/display libraries, and no display server (no $DISPLAY needed on
+# compute nodes).
+#
+# Install with:
+#   pip install -r requirements-hpc.txt
+# or, if pip isn't available/desired on the cluster, via the system module
+# system (e.g. `module load python numpy` on many PBS/Slurm clusters) —
+# check with your HPC's documentation/admins first.
+
+numpy>=1.21

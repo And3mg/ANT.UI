@@ -1,0 +1,119 @@
+from numpy import unique
+
+def divide_basisset(basisets, symbols):
+    global Nbtm, Nmol, Ntop
+    basis = {}
+    pseudo = {}
+
+    basisets = basisets.split(f'{intro}')
+    j = -1
+    for i in range(len(basisets)):
+        j+=1
+        line = basisets[j]
+        if line == '' or line == ' ':
+            break
+        basis[line] = ''
+        key = line
+        j+=1
+        line = basisets[j]
+        while not '****' in line:
+            basis[key] += line + f'{intro}'
+            j+=1
+            line = basisets[j]
+        
+    j+=1
+    line = basisets[j]
+    while line != '' or line != ' ':
+        if line in basis.keys():
+            key = line
+            pseudo[key] = '' 
+        else:
+            pseudo[key] += line + f'{intro}'
+        j+=1
+        line = basisets[j]
+        if line == '' or line == ' ':
+            break
+        
+    basiset_molecule = ''
+    basiset_electrode = ''
+    molecule = unique([elem_dict[x] for x in symbols[Nbtm:Nbtm+Nmol]])
+    for key in basis.keys():
+        flag = True
+        for elem in molecule:
+            if elem+' ' in key:
+                basiset_molecule += key + f'{intro}'    
+                basiset_molecule += basis[key]
+                basiset_molecule += f'****{intro}'
+                flag = False
+        if flag:
+            mod_key = [int(x) for x in key.split()]
+            for i,x in enumerate(mod_key):
+                if x > Nbtm:
+                    x = x-Nmol
+                basiset_electrode += f'{x} '
+            basiset_electrode += f'{intro}'
+            basiset_electrode += basis[key]
+            basiset_electrode += f'****{intro}'
+    basiset_electrode += f'{intro}'
+    basiset_molecule += f'{intro}'
+
+    for key in pseudo.keys():
+        flag = True
+        for elem in molecule:
+            if elem+' ' in key:
+                basiset_molecule += key + f'{intro}'    
+                basiset_molecule += pseudo[key]
+                flag = False
+        if flag:
+            mod_key = [int(x) for x in key.split()]
+            for i,x in enumerate(mod_key):
+                if x > Nbtm:
+                    x = x-Nmol
+                basiset_electrode += f'{x} '
+            basiset_electrode += f'{intro}'
+            basiset_electrode += pseudo[key]
+    
+    basiset_electrode += f'{intro}{intro}{intro}{intro}'
+    basiset_molecule += f'{intro}{intro}{intro}{intro}'
+    return basiset_electrode, basiset_molecule
+
+def check_for_subst(header):
+    chk = ''
+    header = header.split(f'{intro}')
+    for i,hd in enumerate(header):
+        if not '%Subst L' in hd:
+            if i==len(header)-2:
+                chk += '0,1'
+            else:
+                chk += hd+f'{intro}'
+    return chk
+
+if __name__ == '__main__':
+    symbols_list, coordinates_list, _ = extract_final_positions(log_file_path)
+    header, basisets,_, __ = read_opt_gjf(optgjf_path)
+        
+    symbols = symbols_list[-1]
+    coordinates = coordinates_list[-1]
+        
+    bs_electrode, bs_molecule = divide_basisset(basisets, symbols)
+        
+    symbol_mol = symbols[Nbtm:Nbtm+Nmol]
+    symbol_elec = symbols[:Nbtm]+symbols[Nbtm+Nmol:]
+        
+    coord_mol = coordinates[Nbtm:Nbtm+Nmol]
+    coord_elec = coordinates[:Nbtm]+coordinates[Nbtm+Nmol:]
+        
+    name = optgjf_path.split('.')[0]
+    optgjf_path = name+'_elec.gjf'
+        
+    header = header.replace(name, name+'_EABS')
+    create_gjf(header, bs_electrode, [elem_dict[x] for x in symbol_elec], coord_elec)
+        
+    Ant1, Ant2 = '', ''
+    optgjf_path = name+'.gjf'
+    header, basisets,_, __ = read_opt_gjf(optgjf_path)
+    header = header.replace(name, name+'_EABS')
+    header = check_for_subst(header)
+    optgjf_path = name+'_mol.gjf'
+    create_gjf(header, bs_molecule, [elem_dict[x] for x in symbol_mol], coord_mol)
+

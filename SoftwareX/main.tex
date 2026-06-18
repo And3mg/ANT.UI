@@ -1,0 +1,231 @@
+%%
+%% Copyright 2007, 2008, 2009 Elsevier Ltd
+%%
+%% This file is part of the 'Elsarticle Bundle'.
+%% ---------------------------------------------
+%%
+%% It may be distributed under the conditions of the LaTeX Project Public
+%% License, either version 1.2 of this license or (at your option) any
+%% later version.  The latest version of this license is in
+%%    http://www.latex-project.org/lppl.txt
+%% and version 1.2 or later is part of all distributions of LaTeX
+%% version 1999/12/01 or later.
+%%
+%% The list of all files belonging to the 'Elsarticle Bundle' is
+%% given in the file `manifest.txt'.
+
+%% Template article for Elsevier's document class `elsarticle'
+%% with numbered style bibliographic references
+%% SP 2008/03/01
+
+\documentclass[preprint,12pt, a4paper]{elsarticle}
+
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\setlength{\parindent}{0pt}
+
+\journal{SoftwareX}
+
+\begin{document}
+\renewcommand{\labelenumii}{\arabic{enumi}.\arabic{enumii}}
+
+\begin{frontmatter}
+
+\title{\texttt{ANT.UI}: A versatile molecular junction builder for \texttt{ANT.Gaussian} and quantum-transport input preparation.}
+
+\author[1]{A. Martinez-Garcia\corref{cor1}}
+\ead{andres.martinez@ua.es}
+\author[1]{C. Sabater}
+\ead{carlos.sabater@ua.es}
+
+\cortext[cor1]{Corresponding author}
+
+\affiliation[1]{organization={Departamento de Física and Instituto Universitario de Materiales de Alicante (IUMA)},
+            addressline={Universidad de Alicante, Campus de San Vicente del Raspeig},
+            postcode={E-03690},
+            city={Alicante},
+            country={Spain}}
+
+\begin{abstract}
+\texttt{ANT.UI} is a Python graphical interface designed to streamline the construction of molecular junction geometries for DFT-based quantum transport calculations. The software provides real-time 3D manipulation of electrodes and molecules and automates the generation of complete input files for \texttt{Gaussian} and \texttt{ANT.Gaussian} (ANT). Advanced sequential-output tools further enable electrode-pulling sequences, surface scans, and step-wise rotation studies with optional geometry optimisation chaining. By reducing what previously required days of manual scripting to a point-and-click workflow, \texttt{ANT.UI} accelerates research in theoretical molecular electronics and substantially lowers the barrier to entry for new users.
+\end{abstract}
+
+\begin{keyword}
+molecular electronics \sep quantum transport \sep NEGF-DFT \sep graphical user interface \sep molecular junction \sep ANT.Gaussian
+\end{keyword}
+
+\end{frontmatter}
+
+\section*{Metadata}
+\label{}
+
+\begin{table}[!h]
+\begin{tabular}{|l|p{6.5cm}|p{6.5cm}|}
+\hline
+\textbf{Nr.} & \textbf{Code metadata description} & \textbf{Metadata} \\
+\hline
+C1 & Current code version & v1.0.0 \\
+\hline
+C2 & Permanent link to code/repository used for this code version & \url{https://github.com/[TO BE ADDED UPON PUBLICATION]} \\
+\hline
+C3  & Permanent link to Reproducible Capsule & Not available \\
+\hline
+C4 & Legal Code License   & MIT License \\
+\hline
+C5 & Code versioning system used & git \\
+\hline
+C6 & Software code languages, tools, and services used & Python 3.8+; libraries: tkinter, customtkinter, numpy, matplotlib \\
+\hline
+C7 & Compilation requirements, operating environments \& dependencies & Python $\geq$3.8; numpy $\geq$1.21; matplotlib $\geq$3.5; customtkinter $\geq$5.2; tkinter (included with Python on Windows and macOS; system package on Linux). An \texttt{ANT.Gaussian} installation on an HPC cluster is required to run the generated input files. \\
+\hline
+C8 & If available, link to developer documentation/manual & Included in the repository under \texttt{ANT.UI\_Manual/}. \\
+\hline
+C9 & Support email for questions & andres.martinez@ua.es \\
+\hline
+\end{tabular}
+\caption{Code metadata (mandatory)}
+\label{codeMetadata}
+\end{table}
+
+\begin{table}[!h]
+\begin{tabular}{|l|p{6.5cm}|p{6.5cm}|}
+\hline
+\textbf{Nr.} & \textbf{(Executable) software metadata description} & \textbf{Please fill in this column} \\
+\hline
+S1 & Current software version & 1.0.0 \\
+\hline
+S2 & Permanent link to executables of this version  & \url{https://github.com/[TO BE ADDED]/releases/tag/v1.0.0} \\
+\hline
+S3  & Permanent link to Reproducible Capsule & Not available \\
+\hline
+S4 & Legal Software License & MIT License \\
+\hline
+S5 & Computing platforms/Operating Systems & Microsoft Windows, Linux, macOS \\
+\hline
+S6 & Installation requirements \& dependencies & Python $\geq$3.8; install dependencies with \texttt{pip install -r requirements.txt} \\
+\hline
+S7 & If available, link to user manual & Included in the repository under \texttt{ANT.UI\_Manual/} \\
+\hline
+S8 & Support email for questions & andres.martinez@ua.es \\
+\hline
+\end{tabular}
+\caption{Software metadata (optional)}
+\label{executabelMetadata}
+\end{table}
+
+
+\section{Motivation and significance}
+
+The advancement of molecular electronics relies not only on physical electrical transport experiments but also depends critically on theoretical modelling, encompassing both molecular dynamics simulations and state-of-the-art quantum transport calculations. In this context, the ability to visualise and interact directly with the system's geometry is essential. Precisely understanding how molecules deposit onto a surface or anchor to electrodes is a crucial prerequisite for any rigorous analysis.
+
+To address these challenges, the scientific community relies on highly specialised computational tools:
+\begin{itemize}
+\item \texttt{Gaussian} is the standard in quantum chemistry, enabling the optimisation of molecular structures and the calculation of fundamental electronic properties \cite{GAUSSIAN09}.
+\item \texttt{ANT.Gaussian} (ANT) performs transport calculations on the complete junction using Non-Equilibrium Green's Functions combined with Density Functional Theory (NEGF-DFT) \cite{ANTcode}.
+\end{itemize}
+
+Despite the power of these tools, a significant practical gap remains in the workflow. Preparing three-dimensional atomistic geometries and formatting the specific input files required by each program is a persistent bottleneck. Researchers have traditionally relied on custom Python or MATLAB scripts to generate junction geometries, a process that is error-prone and time-consuming.
+
+While general-purpose molecular visualisers and builders exist — such as \texttt{Avogadro} \cite{avogadro}, \texttt{ASE GUI} \cite{ase}, and commercial solutions like \texttt{QuantumATK} \cite{quantumatk} — these tools lack native support for the specific requirements of cross-platform quantum transport calculations. Crucial tasks such as the precise definition of Bethe-lattice electrode regions, the step-by-step stretching of a junction (electrode pulling), or the configuration of surface scans for ANT demand specialised workflows that general-purpose software does not provide in an integrated manner.
+
+\texttt{ANT.UI} was developed specifically to bridge this gap. The user launches the application, selects electrode and molecule geometries from built-in libraries or custom files, positions all components interactively in the real-time 3D viewer, and sets DFT parameters via drop-down menus. The software then generates complete, ready-to-run input files for \texttt{Gaussian} and ANT. By eliminating manual scripting, \texttt{ANT.UI} transforms a process that previously took hours or days into a task completed in seconds, and provides a visual, accessible entry point for students new to theoretical molecular electronics.
+
+
+\section{Software description}
+
+\subsection{Software architecture}
+
+\texttt{ANT.UI} is implemented in Python and is structured as four source modules:
+
+\begin{itemize}
+    \item \textbf{ANT.UI.py} — the main entry point. It defines the GUI classes (\texttt{tkinter\_window}, \texttt{object\_controls}, and the assistant pop-ups), handles user interaction, and coordinates the overall application state.
+    \item \textbf{\_DICS.py} — a data dictionary module containing atomic radii, masses, and colours used for rendering; the list of supported exchange-correlation functionals; the mapping from element symbols to electrode parameters; and the parser for the \texttt{USER\_CONF.txt} configuration file.
+    \item \textbf{\_OUT.py} — the output generation module. It contains all functions that write Gaussian (\texttt{.gjf}), ANT (\texttt{.ant}), submission script (\texttt{launchANT.sh}), and XYZ files, as well as the logic for sequential-output types (pull, grid, rotation).
+    \item \textbf{\_DFT.py} — the DFT file writer. It assembles basis-set blocks, pseudopotentials, optimisation constraints, and the Python connector scripts that manage the cluster-side geometry-update pipeline.
+    \item \textbf{\_SOC.py} — an optional module (loaded at runtime; the SOC output buttons are disabled gracefully if it is absent) that writes spin-orbit-coupling input files using the basis sets and parameters stored in \texttt{SOC\_params/}.
+\end{itemize}
+
+The application relies on \texttt{customtkinter} for the GUI and \texttt{matplotlib} for the embedded 3D viewer. No installation is required beyond the packages listed in \texttt{requirements.txt}.
+
+\subsection{Software functionalities}
+
+\subsubsection*{Interactive 3D junction builder}
+
+The core of \texttt{ANT.UI} is a real-time viewer that renders a 3D representation of the molecular junction using \texttt{matplotlib}'s 3D axes. The user controls the position ($x$, $y$, $z$) and orientation (rotation about each axis) of the top electrode and the molecule via slider controls, while the bottom electrode acts as a fixed reference frame. Atomic species are colour-coded and rendered as spheres; the Bethe-lattice support layers are hidden from the viewer to avoid visual clutter, since they are treated differently by ANT.
+
+\subsubsection*{Electrode and molecule libraries}
+
+Electrode geometries are stored as XYZ files in the \texttt{ElectrodesDFT} folder. All electrodes are defined with gold as the template element; other elements are obtained by scaling the geometry with the appropriate lattice-parameter ratio from a lookup table in \texttt{\_DICS.py}. The molecule library is likewise XYZ-based, located in the \texttt{Molecules} folder, and is fully extensible: any XYZ file placed in the folder appears in the molecule selector after restarting. DFT+U values for individual functionals can be encoded directly in the XYZ comment line.
+
+\subsubsection*{DFT+U support}
+
+The Hubbard-$U$ correction for strongly correlated molecules is supported at the GGA level. The appropriate $U$ value is pre-computed by the user from isolated-molecule calculations, stored in the molecule's XYZ file, and applied automatically when the DFT+U option is enabled. A user-configurable screening factor (\texttt{U\_ELECTRON\_SCREENING} in \texttt{USER\_CONF.txt}) scales the stored $U$ to account for metallic screening of the molecule by the electrodes.
+
+\subsubsection*{Geometry optimisation integration}
+
+The \textbf{Optimization Options} window provides fine-grained control over which parts of the junction are relaxed by Gaussian and under what constraints. Individual regions (Bethe-lattice layers, active electrode layers, and the molecule) can be independently set to frozen, $z$-only, or fully unconstrained modes. Optimisation can be chained across sequential outputs: the \emph{first step} mode relaxes the initial geometry and propagates it to the rest of the sequence, while the \emph{every step} mode forms a chain where each geometry is initialised from the relaxed previous step.
+
+\subsubsection*{Sequential-output assistants}
+
+Three assistants generate families of related inputs for multi-step calculations:
+
+\begin{itemize}
+    \item The \textbf{Pull Assistant} produces a series of inputs in which the electrode separation is varied by a fixed increment $dz$, simulating a break-junction stretching or compression experiment.
+    \item The \textbf{Grid Assistant} produces a two-dimensional grid of inputs in which the top electrode is scanned laterally over the molecule at constant height, mimicking an STM measurement.
+    \item The \textbf{Rotation Assistant} produces a rotational sweep of a selected junction component about the $z$ axis, enabling systematic studies of orientation-dependent transport.
+\end{itemize}
+
+All three assistants respect the optimisation chain settings and generate the necessary Python connector scripts for cluster-side geometry propagation.
+
+\subsubsection*{Spin-orbit coupling}
+
+For electrode elements with parameterised SOC basis sets (Au, Pt, Cu, Ag, Al, Ni), the \textbf{SOC ANT} button generates a parallel set of ANT inputs using the SOC-adapted basis functions and parameters stored in \texttt{SOC\_params/}. The SOC option is also available in the Rotation Assistant for step-wise SOC calculations.
+
+
+\section{Illustrative examples}
+
+Figure~\ref{fig:examples} presents four representative outputs generated with \texttt{ANT.UI}.
+
+Panel (a) shows the transmission contour map obtained from a Grid Assistant scan of a benzene molecule physisorbed on a Au(111) slab. The tip was scanned at fixed height over a $5\times5$ grid; each grid point corresponds to one ANT transport calculation. The spatial variation of the zero-bias transmission reflects the nodal structure of the molecular orbitals contributing to transport.
+
+Panel (b) shows the zero-bias transmission as a function of electrode separation from a Pull Assistant sequence on a benzene junction. Two configurations are compared: symmetric pulling where both electrodes move by $dz/2$ (blue) and asymmetric pulling where only the top electrode moves by $dz$ (green). The difference between the two curves illustrates the sensitivity of junction conductance to the precise contact geometry.
+
+Panel (c) shows a grid scan of a C$_{60}$ fullerene on a Au tip electrode, revealing the characteristic fivefold symmetry of the fullerene cage projected onto the transmission landscape.
+
+Panel (d) shows a single-line scan over a C$_{60}$ fullerene deposited on a flat Au slab, equivalent to a cross-section through a 2D scan. The transmission profile traces the spatial extent of the molecule and the coupling variation as the tip crosses the fullerene.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1\linewidth]{Figures/Fig6.png}
+    \caption{Examples of calculations enabled by \texttt{ANT.UI}. (a)~Transmission contour map from a grid scan of benzene on a Au slab. (b)~Transmission vs.\ electrode separation from a pull sequence on benzene: symmetric pulling (blue) vs.\ single-electrode pulling (green). (c)~Grid scan of C$_{60}$ on a Au tip. (d)~Single-line transmission profile of C$_{60}$ on a Au slab.}
+    \label{fig:examples}
+\end{figure}
+
+
+\section{Impact}
+
+The impact of \texttt{ANT.UI} on the computational chemistry and materials physics communities is substantial, directly addressing the following key areas:
+
+\begin{itemize}
+    \item \textbf{Enabling new research questions:} By eliminating the bottleneck of manual geometry preparation, \texttt{ANT.UI} makes high-throughput screening of molecular junctions practical. Studies that previously required weeks of input preparation — such as systematic electrode-pulling or rotation sequences across families of molecules — can now be set up in minutes.
+
+    \item \textbf{Enhancing existing research workflows:} The tool improves the reproducibility and accuracy of simulations. Manually defining electrode regions or Bethe-lattice layers in a text file is error-prone and can waste valuable supercomputing allocations. Visual selection and automated exporting in \texttt{ANT.UI} ensure that the geometry being computed corresponds exactly to the researcher's intended design.
+
+    \item \textbf{Transforming daily user practices:} Researchers can focus on analysing physics rather than managing coordinate formats. The software also democratises access to NEGF-DFT calculations by providing an accessible entry point for undergraduate and early-stage doctoral students who do not yet have advanced scripting skills.
+
+    \item \textbf{Adoption and reach:} \texttt{ANT.UI} is the standard tool for all members of the Quantum Transport Group at the Universidad de Alicante and is actively used by collaborating groups, including those of Prof.\ Juan José Palacios (Universidad Autónoma de Madrid), Prof.\ Linda A.\ Zotti (Universidad Autónoma de Madrid), and Dr.\ W.\ Dednam (University of South Africa).
+\end{itemize}
+
+\section{Conclusions}
+
+\texttt{ANT.UI} provides an integrated, graphical solution to one of the main practical bottlenecks in theoretical molecular electronics: the construction and formatting of molecular junction inputs for NEGF-DFT transport calculations. The software combines an interactive 3D geometry builder with automated output generation for \texttt{Gaussian} and \texttt{ANT.Gaussian}, and extends these capabilities with sequential-output assistants for electrode pulling, surface scanning, and rotational sweeps. It supports geometry optimisation chaining, DFT+U corrections, and spin-orbit coupling inputs for a range of metal electrode elements. By reducing a task that previously demanded extensive manual scripting to a point-and-click workflow, \texttt{ANT.UI} accelerates research productivity and lowers the barrier to entry for new practitioners in the field.
+
+\section*{Acknowledgements}
+The authors gratefully acknowledge financial support from the Generalitat Valenciana (grant CIDEXG/2022/45). This research is part of the Advanced Materials program, supported by MCIN with funding from the European Union NextGenerationEU (PRTR-C17.I1) and the Generalitat Valenciana (grant MFA/2022/045). Additional funding was provided by MICIU/AEI/10.13039/501100011033 and the European Regional Development Fund (ERDF/EU) under project PID2023-146660OB-I00. We wish to express our sincere gratitude to Prof.\ Juan José Palacios and Prof.\ Linda A.\ Zotti (Universidad Autónoma de Madrid), and to Dr.\ W.\ Dednam (University of South Africa), for their valuable discussions, continuous feedback, and support.
+
+\bibliographystyle{elsarticle-num}
+\bibliography{mibibSX.bib}
+
+\end{document}
+\endinput

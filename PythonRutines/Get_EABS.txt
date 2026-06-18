@@ -1,0 +1,28 @@
+
+def get_E(file):
+    with open(file, 'r') as data:
+        line = data.readline()
+        while line != '':
+            line = data.readline()
+            if 'SCF Done' in line:
+                E = None
+                line = line.split()
+                for x in line:
+                    try:
+                        E = float(x)
+                    except:
+                        pass
+                    if E:
+                        return E
+    return 0
+
+if __name__ == '__main__':
+    k = 27.2114
+    Ee = get_E(Ee_file)
+    Eelec = get_E(Eelec_file)
+    Emol = get_E(Emol_file)
+    
+    with open(f'E.{Eelec_file.split("_")[0]}.dat', 'w') as out:
+        out.write(f'E_mol     E_elec     E_total      E_Abs      Units {intro}')
+        out.write(f'{Emol*k}     {Eelec*k}     {Ee*k}      {(Ee-Eelec-Emol)*k}      Ev {intro}')
+        out.write(f'{Emol}     {Eelec}     {Ee}      {Ee-Eelec-Emol}      Hartree')

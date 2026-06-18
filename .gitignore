@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Generated outputs (user-created junction folders)
+Outputs/
+
+# LaTeX build artifacts
+ANT.UI_Manual/*.aux
+ANT.UI_Manual/*.log
+ANT.UI_Manual/*.out
+ANT.UI_Manual/*.toc
+ANT.UI_Manual/*.synctex.gz
+ANT.UI_Manual/*.fls
+ANT.UI_Manual/*.fdb_latexmk
+SoftwareX/*.aux
+SoftwareX/*.log
+SoftwareX/*.out
+SoftwareX/*.toc
+SoftwareX/*.synctex.gz
+SoftwareX/*.fls
+SoftwareX/*.fdb_latexmk
+SoftwareX/*.blg
+SoftwareX/*.bbl
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+

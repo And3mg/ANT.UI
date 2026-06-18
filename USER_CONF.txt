@@ -1,0 +1,43 @@
+#%% 
+ANTDIRcall
+../ANT.Gaussian-master2.8.0/bin  #Where your ANT L502 and L101 modified links are
+#%%
+
+#%%
+JOBHEAD
+Your tipical submision script header + any job imports you need for the HCP build
+#%%
+
+#%%
+GAUSSIANHEAD
+%mem=4gb  #Modify to optimize job performance
+%NProcShared=8
+#%%
+
+#%%
+G09call
+g09 #your Gaussian09 call in the HCP
+#%%
+
+#%%
+PYTHONcall
+python3 #the call to your HCP python build
+#%%
+
+#%%
+ANTpredet
+ALPHA = 0.015  
+SL = 1.0d-4   
+PACC = 1.0d-7  
+NPULAY = 4  
+FERMIACC = 1.0d-5  
+CHARGEACC = 1.0d-5  
+NSPINLOCK = 00  #Modify as your job needs
+#%%
+
+#%%
+ZMAX
+20.0 
+#%%
+
+

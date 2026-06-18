@@ -1,0 +1,29 @@
+
+def move(poss, variable_dict):
+    global Nbtm, Nmol, Ntop, dz, both
+    i = 0
+    used = []
+    if both:
+        dz = dz/2
+    while i < Nbtm:
+        if both:
+            try:
+                poss[i][-1] = float(poss[i][-1])-dz
+            except:
+                if not poss[i][-1] in used:
+                    used.append(poss[i][-1])
+                    variable_dict[poss[i][-1]] -= dz
+        i+=1
+
+    i += Nmol
+    
+    while i < Nbtm+Nmol+Ntop:
+        try:
+            poss[i][-1] = float(poss[i][-1])+dz
+        except:
+            if not poss[i][-1] in used:
+                used.append(poss[i][-1])
+                variable_dict[poss[i][-1]] += dz
+        i+=1
+    return poss, variable_dict
+

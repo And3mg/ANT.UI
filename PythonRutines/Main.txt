@@ -1,0 +1,13 @@
+if __name__ == '__main__':
+        symbols_list, coordinates_list, _ = extract_final_positions(log_file_path)
+        header, basisets,_, __ = read_opt_gjf(optgjf_path)
+        
+        # Write xyz the results for all sections
+        with open('Opt'+log_file_path.split('.')[0]+'.xyz', 'w') as out:
+            for idx, (symbols, coordinates) in enumerate(zip(symbols_list, coordinates_list), start=1):
+                out.write(f'{len(coordinates)} {intro}')
+                out.write(f"Timestep {idx} {intro}")
+                for symbol, coords in zip(symbols, coordinates):
+                    out.write(f"{elem_dict[symbol]} {coords[0]}, {coords[1]}, {coords[2]}{intro}")
+    
+        create_gjf(header, basisets, [elem_dict[x] for x in symbols], coordinates)
