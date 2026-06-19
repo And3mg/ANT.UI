@@ -334,7 +334,7 @@ def Create_grid_output(objs, Dir, name, grid, opt_data, DFT_opts):
             count+=1
         y = y[::-1]
     grid_dat.close()
-    create_unisa_multi(count, Dir)
+    create_unisa_multi(count, Dir, opt_data['Chains'])
     create_xyz_film(Dir, name, POSS, ELEM, N)
     return
 
@@ -566,7 +566,7 @@ def Create_rot_output(objs, Dir, name, angles, boolean_data, SOC, opt_data, DFT_
         ELEM.append(Elem)
             
     rot_dat.close()
-    create_unisa_multi(len(angles), Dir)
+    create_unisa_multi(len(angles), Dir, opt_data['Chains'])
     create_xyz_film(Dir, name, POSS, ELEM, N)
     return
 
