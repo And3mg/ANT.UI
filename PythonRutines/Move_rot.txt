@@ -1,6 +1,7 @@
 
 
 import numpy as np
+dtheta *= 2*np.pi/360
 rotationZi = np.array([[np.cos(dtheta), np.sin(dtheta), 0],
                         [-np.sin(dtheta), np.cos(dtheta), 0],
                         [0, 0, 1]])
@@ -9,6 +10,7 @@ def move(poss, variable_dict):
     global Nbtm, Nmol, Ntop, rotationZi, Flag_bottom, Flag_mol, Flag_top
     i = 0
     used = []
+    poss = np.array(poss)
     while i < Nbtm+Nmol+Ntop:
         Flag_z = False
         Flag_xy = False
@@ -20,13 +22,13 @@ def move(poss, variable_dict):
             pass
         else:
             try:
-                temp = np.array([poss[i][-3], poss[i][-2], poss[i][-1]])
+                temp = np.array([poss[i][-3], poss[i][-2], poss[i][-1]], dtype = float)
             except:
                 try:
-                    temp = np.array([poss[i][-3], poss[i][-2], variable_dict[poss[i][-1]]])
+                    temp = np.array([poss[i][-3], poss[i][-2], variable_dict[poss[i][-1]]], dtype = float)
                     Flag_z = True
                 except:
-                    temp = np.array([variable_dict[poss[i][-3]], variable_dict[poss[i][-2]], variable_dict[poss[i][-1]]])
+                    temp = np.array([variable_dict[poss[i][-3]], variable_dict[poss[i][-2]], variable_dict[poss[i][-1]]], dtype = float)
                     Flag_z = True
                     Flag_xy = True
             
@@ -43,8 +45,10 @@ def move(poss, variable_dict):
                     variable_dict[poss[i][-2]] = temp[1]
             if not Flag_z:
                 poss[i][-1] = temp[2]
+            else:
                 if not poss[i][-1] in used:
                     used.append(poss[i][-1])
                     variable_dict[poss[i][-1]] = temp[2]
         i+=1
     return poss, variable_dict
+

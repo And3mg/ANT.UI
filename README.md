@@ -65,7 +65,7 @@ pip install -r requirements-hpc.txt
 
 ## Documentation
 
-A full user manual is available in `ANT.UI_Manual/` (LaTeX source + figures). Compile with `pdflatex main.tex`.
+A full user manual is available in `ANT.UI_UserManual.pdf` in the repository.
 
 ---
 

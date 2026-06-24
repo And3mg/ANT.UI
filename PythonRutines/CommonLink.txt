@@ -44,7 +44,7 @@ def extract_final_positions(log_file_path):
                 if re.search(atom_line_pattern, line):
                     atom_number, atomic_number, atom_type, x, y, z = re.search(atom_line_pattern, line).groups()
                     atom_symbols.append(int(atomic_number))  # Convert atomic number to integer
-                    atom_coordinates.append((float(x), float(y), float(z)))
+                    atom_coordinates.append([float(x), float(y), float(z)])
             # Append the atom symbols and coordinates for this section to the overall lists
             all_atom_symbols.append(atom_symbols)
             all_atom_coordinates.append(atom_coordinates)

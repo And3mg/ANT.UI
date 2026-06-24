@@ -306,6 +306,8 @@ def Create_grid_output(objs, Dir, name, grid, opt_data, DFT_opts):
                         text = f'Nbtm, Nmol, Ntop = {objs[0].N}, {objs[1].N}, {N_up} \n'
                         text += f'Grid = {Grid} \n'
                         text += f'I = 0 \n \n'
+                        text += f"Next_folder = '{name}_{"0"*(len(str(grid[0][2]*grid[1][2])))}' \n"                
+
                         with open('PythonRutines/Move_grid.txt', 'r') as read:
                             text += read.read()   
                         text += '\n'
@@ -425,6 +427,8 @@ def Create_pull_output(objs, Dir, name, dz, nz, both, opt_data, DFT_opts):
                     text = f'Nbtm, Nmol, Ntop = {N_down}, {objs[1].N}, {N_up} \n'
                     text += f'dz = {dz} \n'
                     text += f'both = {both} \n \n'
+                    text += f'Next_folder = {name}_{str(i).zfill(len(str(len(nz))))} \n'                 
+
                     with open('PythonRutines/Move_pull.txt', 'r') as read:
                         text += read.read()   
                     text += '\n'
@@ -531,7 +535,8 @@ def Create_rot_output(objs, Dir, name, angles, boolean_data, SOC, opt_data, DFT_
                     text += f'dtheta = {angles[1]-angles[0]} \n'
                     text += f'Flag_bottom = {boolean_data[0]} \n'
                     text += f'Flag_mol = {boolean_data[1]} \n'
-                    text += f'Flag_top = {boolean_data[2]} \n'                    
+                    text += f'Flag_top = {boolean_data[2]} \n'   
+                    text += f'Next_folder = {name}_{str(i).zfill(len(str(len(angles))))} \n'                 
                     with open('PythonRutines/Move_rot.txt', 'r') as read:
                         text += read.read()   
                     text += '\n'
