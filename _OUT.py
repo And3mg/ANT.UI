@@ -306,7 +306,8 @@ def Create_grid_output(objs, Dir, name, grid, opt_data, DFT_opts):
                         text = f'Nbtm, Nmol, Ntop = {objs[0].N}, {objs[1].N}, {N_up} \n'
                         text += f'Grid = {Grid} \n'
                         text += f'I = 0 \n \n'
-                        text += f"Next_folder = '{name}_{"0"*(len(str(grid[0][2]*grid[1][2])))}' \n"                
+                        n = "0"*(len(str(grid[0][2]*grid[1][2])))
+                        text += f"Next_folder = '{name}_{n}' \n"                
 
                         with open('PythonRutines/Move_grid.txt', 'r') as read:
                             text += read.read()   
@@ -328,7 +329,7 @@ def Create_grid_output(objs, Dir, name, grid, opt_data, DFT_opts):
             else:
                 create_gjf(Names[-1], f'{Dir}/{name}_{name_number[count]}', Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts)
 
-            create_ant(Names[-1], f'{Dir}/{name}_{name_number[count]}', Elem[0], Elem[-1], DFTU, n-obj.N +1)
+            create_ant(Names[-1], f'{Dir}/{name}_{name_number[count]}', Elem[0], Elem[-1], DFTU, DOSAT= N-obj.N +1)
             POSS.append(Poss.copy())
             ELEM.append(Elem)
             grid_dat.write(f'{name_number[count]}: x = {i} , y = {j} \n')

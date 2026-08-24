@@ -5,18 +5,18 @@ def move(poss, variable_dict):
     used = []
     i += Nbtm
     i += Nmol
-    
+    prev = Grid[I-1] if I > 0 else Grid[I]
     while i < Nbtm+Nmol+Ntop:
         try:
-            poss[i][-3] = float(poss[i][-3])+Grid[I][0]-Grid[I-1][0]
-            poss[i][-2] = float(poss[i][-2])+Grid[I][1]-Grid[I-1][1]
+            poss[i][-3] = float(poss[i][-3])+Grid[I][0]-prev[0]
+            poss[i][-2] = float(poss[i][-2])+Grid[I][1]-prev[1]
         except:
             if not poss[i][-2] in used:
                 used.append(poss[i][-2])
-                variable_dict[poss[i][-2]] += Grid[I][1]-Grid[I-1][1]
+                variable_dict[poss[i][-2]] += Grid[I][1]-prev[1]
             if not poss[i][-3] in used:
                 used.append(poss[i][-3])
-                variable_dict[poss[i][-3]] += Grid[I][0]-Grid[I-1][0]
+                variable_dict[poss[i][-3]] += Grid[I][0]-prev[0]
         i+=1
     return poss, variable_dict
 

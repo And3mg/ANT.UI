@@ -21,7 +21,7 @@ g09 #your Gaussian09 call in the HCP
 
 #%%
 PYTHONcall
-python3 #the call to your HCP python build
+python #the call to your HCP python build
 #%%
 
 #%%
@@ -39,5 +39,3 @@ NSPINLOCK = 00  #Modify as your job needs
 ZMAX
 20.0 
 #%%
-
-

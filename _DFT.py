@@ -3,7 +3,7 @@ import numpy as np
 #%%
 from _DICS import *
 
-p_line = '#p HSEH1PBE/gen pseudo=read pop=min Scf=(conver=5,maxcycle=1000,dsymm,nodamp) nosymm IOP(3/124=3)'
+p_line = '#p HSEH1PBE/gen pseudo=read pop=min Scf=(conver=5,maxcycle=1000,dsymm,nodamp) nosymm'
 Flag_opt = False
 Flag_EABS = False
 Flag_opt_in_ANT = False
@@ -48,6 +48,8 @@ def create_unisa_multi(N, Dir, Opt_chain = 'none'):
     h.write('  then \n')
     h.write('    cp P.* ../$name\_$i/P.input$name\_$i.dat \n')
     h.write('    cd ../$name\_$i \n')
+    if Flag_opt_in_ANT and Opt_chain == 'first step':
+        h.write(f"    find input$name\_$i.ant | xargs sed -i 's/EW1 = 3.0/EW1 = -3.0/g' \n")
     h.write(f"    {UserInfo['G09call']} input$name\_$i.gjf \n")
     if Opt_chain == 'every step':
         h.write(f"    {UserInfo['PYTHONcall']} link_opt.py \n")
