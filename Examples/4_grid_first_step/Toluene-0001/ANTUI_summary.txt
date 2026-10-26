@@ -1,4 +1,4 @@
-ANT.UI v1.0.0 export summary
+ANT.UI v1.1.0 export summary
 Destination: Examples/4_grid_first_step/Toluene-0001
 
 Calculation: Grid Assistant sequence
@@ -14,7 +14,7 @@ Basis set / ECP:
   Bethe lattice parameters: BLPAR1 = lsda-crenbs, BLPAR2 = lsda-crenbs
 Optimisation: Gaussian, at most 20 steps
   bottom Bethe fix, bottom electrode fix, molecule all, top electrode fix, top Bethe fix
-  Chain: first step
+  Chain: first step (only the first folder is relaxed in Gaussian; its link_opt.py writes the inputs of the other folders from the relaxed geometry, which are not re-optimised)
 Grid: 10 x 10 = 100 tip positions, x -4.0 to 4.0 A, y -4.0 to 4.0 A, tip centre at z = 3.700 A (LDOS on atom 56)
 Site configuration (USER_CONF.txt): Gaussian call 'g09', Python call 'python', ANT links '../ANT.Gaussian-master2.8.0/bin'
 
