@@ -1,0 +1,22 @@
+ANT.UI v1.0.0 export summary
+Destination: Examples/4_grid_first_step/Toluene-0001
+
+Calculation: Grid Assistant sequence
+Atoms: 75 = bottom electrode 40 (Au, Block_FCC_[111]_40) + molecule 15 (Toluene, C7H8) + top electrode 20 (Au, Point_FCC_[111])
+  Bethe region (outer layers): bottom 20 atoms, top 16; anchor layer with minimal basis: bottom 20, top 10
+  Closest contacts: molecule-bottom 2.36 A, molecule-top 4.42 A, bottom-top 8.35 A
+Functional: PBE (Gaussian route rPBEPBE), close shell
+Electrons after ECP cores: 950; charge 0, multiplicity 1 (automatic)
+Basis set / ECP:
+  C, H: lanl2dz / lanl2dz
+  Au electrode (30 atoms): basis lanl2dz (built-in default); ECP lanl2dz (60 core electrons)
+  Au Bethe anchor (30 atoms): DFT_min_basis_pseudopot/Au_CRENBS.gbs; ECP same file (68 core electrons)
+  Bethe lattice parameters: BLPAR1 = lsda-crenbs, BLPAR2 = lsda-crenbs
+Optimisation: Gaussian, at most 20 steps
+  bottom Bethe fix, bottom electrode fix, molecule all, top electrode fix, top Bethe fix
+  Chain: first step
+Grid: 10 x 10 = 100 tip positions, x -4.0 to 4.0 A, y -4.0 to 4.0 A, tip centre at z = 3.700 A (LDOS on atom 56)
+Site configuration (USER_CONF.txt): Gaussian call 'g09', Python call 'python', ANT links '../ANT.Gaussian-master2.8.0/bin'
+
+Warnings:
+  ! JOBHEAD in USER_CONF.txt is still the placeholder: launchANT.sh will not have your cluster job header.

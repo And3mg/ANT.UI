@@ -63,10 +63,14 @@ Run it from the repository root. Tests marked `xfail` document known bugs that a
 | Path | Contents |
 |---|---|
 | `ANT.UI.py` | Main application entry point |
+| `ANT.UI.bat` | Windows launcher (double-click; no console window) |
 | `_OUT.py` | Output file generation (Gaussian `.gjf`, `.ant`, `.sh`, `.xyz`) |
 | `_DFT.py` | DFT file writers and Python connector scripts |
 | `_SOC.py` | Spin-orbit coupling output generation |
+| `_SUMMARY.py` | Pre-export summary and checks (saved as `ANTUI_summary.txt` with every output) |
 | `_DICS.py` | Element dictionaries, functional list, user config loader |
+| `Examples/` | Inputs of the manual's worked examples (the three cases of Fig. 2 of the paper) and the script that regenerates them |
+| `tests/` | Automated tests of the generated inputs (`python -m pytest`) |
 | `ElectrodesDFT/` | Pre-built electrode geometries (XYZ, top-electrode convention) |
 | `Molecules/` | Molecule library (XYZ format) |
 | `DFT_basis_pseudopot/` | Basis sets for electrode atoms shown in the viewer |

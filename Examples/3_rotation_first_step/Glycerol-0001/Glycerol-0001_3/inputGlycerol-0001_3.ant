@@ -1,0 +1,9 @@
+ALPHA = 0.015
+SL = 1.0d-4
+PACC = 1.0d-7
+NPULAY = 4
+FERMIACC = 1.0d-5
+CHARGEACC = 1.0d-5
+NSPINLOCK = 00
+BLPAR1 = lsda-crenbs 
+BLPAR2 = lsda-crenbs 

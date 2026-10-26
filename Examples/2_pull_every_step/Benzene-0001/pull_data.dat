@@ -1,0 +1,22 @@
+0.1 20 True 
+ 
+01: top dz = 0.0000 , bottom dz = 0.0000 , gap change = 0.0000 
+02: top dz = 0.0500 , bottom dz = -0.0500 , gap change = 0.1000 
+03: top dz = 0.1000 , bottom dz = -0.1000 , gap change = 0.2000 
+04: top dz = 0.1500 , bottom dz = -0.1500 , gap change = 0.3000 
+05: top dz = 0.2000 , bottom dz = -0.2000 , gap change = 0.4000 
+06: top dz = 0.2500 , bottom dz = -0.2500 , gap change = 0.5000 
+07: top dz = 0.3000 , bottom dz = -0.3000 , gap change = 0.6000 
+08: top dz = 0.3500 , bottom dz = -0.3500 , gap change = 0.7000 
+09: top dz = 0.4000 , bottom dz = -0.4000 , gap change = 0.8000 
+10: top dz = 0.4500 , bottom dz = -0.4500 , gap change = 0.9000 
+11: top dz = 0.5000 , bottom dz = -0.5000 , gap change = 1.0000 
+12: top dz = 0.5500 , bottom dz = -0.5500 , gap change = 1.1000 
+13: top dz = 0.6000 , bottom dz = -0.6000 , gap change = 1.2000 
+14: top dz = 0.6500 , bottom dz = -0.6500 , gap change = 1.3000 
+15: top dz = 0.7000 , bottom dz = -0.7000 , gap change = 1.4000 
+16: top dz = 0.7500 , bottom dz = -0.7500 , gap change = 1.5000 
+17: top dz = 0.8000 , bottom dz = -0.8000 , gap change = 1.6000 
+18: top dz = 0.8500 , bottom dz = -0.8500 , gap change = 1.7000 
+19: top dz = 0.9000 , bottom dz = -0.9000 , gap change = 1.8000 
+20: top dz = 0.9500 , bottom dz = -0.9500 , gap change = 1.9000 
