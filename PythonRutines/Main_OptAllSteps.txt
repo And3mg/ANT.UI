@@ -30,6 +30,7 @@ if __name__ == '__main__':
                 out.write(f"Timestep {idx} {intro}")
                 for symbol, coords in zip(symbols, coordinates):
                     out.write(f"{elem_dict[symbol]} {coords[0]}, {coords[1]}, {coords[2]}{intro}")
-        
+
+        coordinates, variable_dict = restore_bethe_spacing(coordinates, variable_dict)
         create_gjf(header, basisets, [elem_dict[x] for x in symbols], coordinates)
         create_next_opt(header_notmod, poss_part, variable_dict, basisets)

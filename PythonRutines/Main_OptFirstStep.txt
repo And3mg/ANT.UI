@@ -20,6 +20,7 @@ if __name__ == '__main__':
                 for symbol, coords in zip(symbols, coordinates):
                     out.write(f"{elem_dict[symbol]} {coords[0]}, {coords[1]}, {coords[2]}{intro}")
         
+        coordinates, variable_dict = restore_bethe_spacing(coordinates, variable_dict)
         create_gjf(header, basisets, [elem_dict[x] for x in symbols], coordinates)
         # Step I (0-based) is the relaxed first step moved I times; step 0 is this folder
         for I in range(1, int(N_folder)):
