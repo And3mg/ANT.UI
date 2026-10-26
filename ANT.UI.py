@@ -1,7 +1,17 @@
 #pyinstaller --windowed --icon="Icon.ico" --paths="." ANT.UI.py
+import os
+import re
+import sys
+import shutil
+import traceback
+
+# Data folders and USER_CONF.txt are read relative to the program folder, wherever it is launched from
+os.chdir(os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__)))
+
 import numpy as np
 import matplotlib.pyplot as plt
 from os import listdir, mkdir
+from tkinter import messagebox
 from tkinter import *
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from customtkinter import CTkButton as Button
@@ -193,33 +203,25 @@ class xyz_object():
                 self.extremes = (self.poss[:,2].max() == self.poss[:,2]) 
 
 
-        self.spatial_coords = np.array([0,0,0])
-        self.euler_angles = np.array([0,0,0])
-        self.angles_mem = np.array([0,0,0])
+        self.spatial_coords = np.array([0.,0.,0.])
+        self.euler_angles = np.array([0.,0.,0.])
+        self.poss0 = self.poss.copy()   # unrotated geometry; self.poss = poss0 rotated by euler_angles
         self.find_neighbors()
-        
-    def chiral_mol(self): 
-        temp = np.zeros((self.N, 4))
-        for i,x in enumerate(self.poss):
-            temp[i] = np.array([x[0],x[1],x[2],1])
-        specular_matrix = np.array([[1,0,0,0],
-                                   [0,-1,0,0],
-                                   [0,0,1,0],
-                                   [0,0,0,1]])
-        temp = temp@specular_matrix
-        for i,x in enumerate(temp):
-            self.poss[i] = np.array([x[0],x[1],x[2]])
+
+    def chiral_mol(self):
+        self.poss0 = self.poss0@np.diag([1,-1,1])
+        self.true_coordinates()
 
     def reflection_z(self):
-        refZ = np.array([[1, 0, 0],[0, 1, 0], [0, 0, -1]])
-        self.poss = self.poss@refZ
-       
-    def true_coordinates(self):
+        self.poss0 = self.poss0@np.diag([1,1,-1])
+        self.true_coordinates()
 
-        phi = (self.euler_angles[0]- self.angles_mem[0])*2*np.pi/360
-        theta = (self.euler_angles[1]- self.angles_mem[1])*2*np.pi/360
-        chi = (self.euler_angles[2]- self.angles_mem[2])*2*np.pi/360
-        
+    def true_coordinates(self):
+        '''Rotate the unrotated geometry by the current Euler angles (x, then y, then z) and translate it.'''
+        phi = self.euler_angles[0]*2*np.pi/360
+        theta = self.euler_angles[1]*2*np.pi/360
+        chi = self.euler_angles[2]*2*np.pi/360
+
         rotationXi = np.array([[1,0,0],
                              [0, np.cos(phi), np.sin(phi)],
                              [0, -np.sin(phi), np.cos(phi)]])
@@ -232,20 +234,18 @@ class xyz_object():
                              [-np.sin(chi), np.cos(chi), 0],
                              [0, 0, 1]])
         
-        for i,x in enumerate(self.poss):
-            self.poss[i] = x@rotationXi@rotationYi@rotationZi
-        
-        self.angles_mem = self.euler_angles.copy()
-        
+        self.poss = self.poss0@rotationXi@rotationYi@rotationZi
+
         return self.poss+self.spatial_coords
-  
+
     def change_elem(self, nw_elem):
         rate = radius[nw_elem]/radius[self.elements[0]]
-        
+
         for i in range(self.N):
             self.elements[i] = nw_elem
-            
-        self.poss = self.poss*rate
+
+        self.poss0 = self.poss0*rate
+        self.true_coordinates()
         
     def find_neighbors(self):
         self.neigh_count = np.zeros(self.N, dtype = 'int')
@@ -275,6 +275,22 @@ class xyz_object():
                        radius[self.elements[i]], colores[self.elements[i]])
         
 
+
+def place_bottom_electrode(electrode):
+    '''Turn a top-electrode template into the bottom electrode. FCC [111] templates are rotated
+    (y 180, z 60) so the ABC stacking continues across the gap; other templates are mirrored in z.'''
+    if '[111]' in electrode.name:
+        electrode.euler_angles = np.array([0., 180., 60.])
+    else:
+        electrode.reflection_z()
+    electrode.spatial_coords = np.array([0., 0., -11.])
+    return electrode
+
+def next_output_name(base, folder = 'Outputs'):
+    '''base-NNNN with NNNN one above the highest existing number, so deleted folders never cause a clash.'''
+    pattern = re.compile(re.escape(base) + r'-(\d+)$')
+    numbers = [int(m.group(1)) for m in (pattern.match(x) for x in listdir(folder)) if m]
+    return f'{base}-{max(numbers, default = 0)+1:04}'
 
 #%% Output generation
 
@@ -843,9 +859,7 @@ class tkinter_window():
         self.combo_bottom_elem.set('Au')
         self.combo_bottom_type.set('Point_FCC_[111]')
         
-        self.down_electrode = xyz_object('ElectrodesDFT/Point_FCC_[111].xyz')
-        self.down_electrode.euler_angles = np.array([0,180, 60])
-        self.down_electrode.spatial_coords = np.array([0,0,-11])
+        self.down_electrode = place_bottom_electrode(xyz_object('ElectrodesDFT/Point_FCC_[111].xyz'))
 
 
         #Frame 0 for title of Electrode controls
@@ -961,67 +975,39 @@ class tkinter_window():
             self.soc_btn = Button(self.frame_btn,  text = 'SOC ANT', command = self.create_soc)
             self.soc_btn.pack(side = 'left', expand = True)
 
-        
-        
-    def create_xyz(self):
-        exisisting_outputs = listdir('Outputs')
-        i = 1
-        for x in exisisting_outputs:
-            if x.split('-')[0] == self.molecule.name.replace(' ', '_'):
-                i+=1
-        i = f'{i:04}'
-            
-        name = self.molecule.name.replace(' ', '_') + '-' + i
-        mkdir('Outputs/'+name)
-        
-        Create_xyz_output([self.down_electrode, self.molecule, self.up_electrode], 'Outputs/'+name, name)
+        self.status = Label(root, text = '', font = ('Arial', 12))
+        self.status.pack(side = 'bottom', fill = 'x')
 
-        return
+        
+        
+    def export(self, create, *args):
+        '''Make Outputs/<molecule>-NNNN, run one generator into it and check the result.
+        On any error the half-written folder is removed and the error is shown.'''
+        base = self.molecule.name.replace(' ', '_')
+        name = next_output_name(base)
+        Dir = 'Outputs/'+name
+        mkdir(Dir)
+        objs = [self.down_electrode, self.molecule, self.up_electrode]
+        try:
+            create(objs, Dir, name, *args)
+            n_steps = verify_output(Dir)
+        except Exception:
+            shutil.rmtree(Dir, ignore_errors = True)
+            raise
+        self.status.configure(text = f'Created {Dir}' + (f' ({n_steps} configurations)' if n_steps else ''))
+        return Dir
+
+    def create_xyz(self):
+        return self.export(Create_xyz_output)
     
     def create_ant(self):
-        #Create Dir tree
-        exisisting_outputs = listdir('Outputs')
-        i = 1
-        for x in exisisting_outputs:
-            if x.split('-')[0] == self.molecule.name.replace(' ', '_'):
-                i+=1
-        i = f'{i:04}'
-            
-        name = self.molecule.name.replace(' ', '_') + '-' + i
-        mkdir('Outputs/'+name)
-        
-        Create_output([self.down_electrode, self.molecule, self.up_electrode], 
-                      'Outputs/'+name, name, self.opt_data, self.DFT_opts)
-        return
+        return self.export(Create_output, self.opt_data, self.DFT_opts)
         
     def create_reax(self):
-        exisisting_outputs = listdir('Outputs')
-        i = 1
-        for x in exisisting_outputs:
-            if x.split('-')[0] == self.molecule.name.replace(' ', '_'):
-                i+=1
-        i = f'{i:04}'
-            
-        name = self.molecule.name.replace(' ', '_') + '-' + i
-        mkdir('Outputs/'+name)
-        
-        Create_reax_output([self.down_electrode, self.molecule, self.up_electrode], 'Outputs/'+name, name)
-        return
+        return self.export(Create_reax_output)
 
     def create_soc(self):
-        exisisting_outputs = listdir('Outputs')
-        i = 1
-        for x in exisisting_outputs:
-            if x.split('-')[0] == self.molecule.name.replace(' ', '_'):
-                i+=1
-        i = f'{i:04}'
-            
-        name = self.molecule.name.replace(' ', '_') + '-' + i
-        mkdir('Outputs/'+name)
-        
-        Create_output_soc([self.down_electrode, self.molecule, self.up_electrode], 'Outputs/'+name,
-                          name, self.opt_data, self.DFT_opts)
-        return
+        return self.export(Create_output_soc, self.opt_data, self.DFT_opts)
     
     def update_opt_options(self, opt_data):
         self.opt_data = opt_data
@@ -1036,63 +1022,26 @@ class tkinter_window():
                       self.down_electrode.true_coordinates(), self.molecule.true_coordinates(), self.create_grid_dft)
         tpg.update()
 
-    
     def create_grid_dft(self, grid):
-        #Create Dir tree
-        exisisting_outputs = listdir('Outputs')
-        i = 1
-        for x in exisisting_outputs:
-            if x.split('-')[0] == self.molecule.name.replace(' ', '_'):
-                i+=1
-        i = f'{i:04}'
-            
-        name = self.molecule.name.replace(' ', '_') + '-' + i
-        mkdir('Outputs/'+name)
-        
-        Create_grid_output([self.down_electrode, self.molecule, self.up_electrode], 'Outputs/'+name, name, 
-                           grid, self.opt_data, self.DFT_opts)
-    
+        return self.export(Create_grid_output, grid, self.opt_data, self.DFT_opts)
         
     def pull_toplevel(self):
         toplevel_pull(self.create_pull_dft)
 
-    
     def create_pull_dft(self, dz, nz, both):
-        #Create Dir tree
-        exisisting_outputs = listdir('Outputs')
-        i = 1
-        for x in exisisting_outputs:
-            if x.split('-')[0] == self.molecule.name.replace(' ', '_'):
-                i+=1
-        i = f'{i:04}'
-            
-        name = self.molecule.name.replace(' ', '_') + '-' + i
-        mkdir('Outputs/'+name)
-        
-        Create_pull_output([self.down_electrode, self.molecule, self.up_electrode], 'Outputs/'+name, 
-                           name, dz, nz, both, self.opt_data, self.DFT_opts)
+        if nz < 1 or dz == 0:
+            raise ValueError('Pull Assistant: nz must be at least 1 and dz must not be 0.')
+        return self.export(Create_pull_output, dz, nz, both, self.opt_data, self.DFT_opts)
     
     def rotate_toplevel(self):
         toplevel_rotate(self.create_rot_dft)
 
     def create_rot_dft(self, frm, to, by, top, mol, bottom, SOC):
-        angles = np.arange(frm, to+by, by)
+        if by == 0 or (to-frm)*by < 0:
+            raise ValueError('Rotation Assistant: "by" is the angular step; it must be non-zero and point from "from" to "to".')
+        angles = frm + by*np.arange(int(round((to-frm)/by))+1)   # both ends included
         boolean_data = (bottom, mol, top)
-
-        #Create Dir tree
-        exisisting_outputs = listdir('Outputs')
-        i = 1
-        for x in exisisting_outputs:
-            if x.split('-')[0] == self.molecule.name.replace(' ', '_'):
-                i+=1
-        i = f'{i:04}'
-            
-        name = self.molecule.name.replace(' ', '_') + '-' + i
-        mkdir('Outputs/'+name)
-
-        Create_rot_output([self.down_electrode, self.molecule, self.up_electrode], 
-                          'Outputs/'+name, name, angles, boolean_data, SOC, self.opt_data, self.DFT_opts)
-        return
+        return self.export(Create_rot_output, angles, boolean_data, SOC, self.opt_data, self.DFT_opts)
     
     def upt_dft_chk(self): self.update_DFT(None)
     def update_DFT(self, _):
@@ -1137,10 +1086,7 @@ class tkinter_window():
             change_flag = True
 
         if self.down_electrode.name != self.combo_bottom_type.get():
-            self.down_electrode = xyz_object('ElectrodesDFT/'+self.combo_bottom_type.get()+'.xyz')
-            #self.down_electrode.euler_angles = np.array([0,180, 0])
-            self.down_electrode.reflection_z()
-            self.down_electrode.spatial_coords = np.array([0,0,-11])
+            self.down_electrode = place_bottom_electrode(xyz_object('ElectrodesDFT/'+self.combo_bottom_type.get()+'.xyz'))
 
                     
         if change_flag and SOC_FLAG:
@@ -1164,6 +1110,12 @@ class tkinter_window():
 
 #%% MAIN
 
+def show_error(exc_type, exc_value, exc_tb):
+    '''Tk swallows callback errors (invisible in the windowed build): show them instead.'''
+    traceback.print_exception(exc_type, exc_value, exc_tb)
+    messagebox.showerror('ANT.UI error', f'{exc_type.__name__}: {exc_value}\n\nNo output was kept for this request.'
+                         '\nFull details are printed in the console.')
+
 def main():
     global root, ax, fig
     plt.ion()
@@ -1175,6 +1127,7 @@ def main():
     root = customtkinter.CTk()
     root.title(f'ANT.UI v{__version__}')
     root.geometry('720x720')
+    root.report_callback_exception = show_error
 
     a = tkinter_window()
     a.Update()
