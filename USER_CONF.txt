@@ -5,7 +5,9 @@ ANTDIRcall
 
 #%%
 JOBHEAD
-Your tipical submision script header + any job imports you need for the HCP build
+#!/bin/bash
+# PLACEHOLDER: replace these lines with your cluster's job header
+# (e.g. #SBATCH/#PBS directives and module loads). Lines here are copied verbatim.
 #%%
 
 #%%
@@ -37,5 +39,10 @@ NSPINLOCK = 00  #Modify as your job needs
 
 #%%
 ZMAX
-20.0 
+20.0
+#%%
+
+#%%
+OUTPUTDIR
+Outputs  #default folder for generated calculations (can also be changed in the main window)
 #%%
