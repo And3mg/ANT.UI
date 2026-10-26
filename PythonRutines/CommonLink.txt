@@ -142,3 +142,16 @@ def create_gjf(header, basisets, Elem, Coords):
         out.write(basisets)
     return
 
+def restore_bethe_spacing(coordinates, variable_dict):
+    # Gaussian09 relaxes every Bethe plane through its own z variable. Put the outer planes back at their
+    # original distance from the innermost one, so the block attached to the Bethe lattice keeps its geometry.
+    for side in globals().get('Bethe_layers', []):
+        reference = side['reference']
+        z_ref = float(coordinates[side['layers'][reference][1][0]][2])
+        for var, (offset, atoms) in side['layers'].items():
+            for i in atoms:
+                coordinates[i][2] = z_ref + offset
+            if var in variable_dict and reference in variable_dict:
+                variable_dict[var] = variable_dict[reference] + offset
+    return coordinates, variable_dict
+

@@ -8,13 +8,15 @@ p_line = '#p HSEH1PBE/gen pseudo=read pop=min Scf=(conver=5,maxcycle=1000,dsymm,
 Flag_opt = False
 Flag_EABS = False
 Flag_opt_in_ANT = False
+bethe_layers = []
 
 def begin_export():
     '''Reset the module state shared by the writers, so no setting leaks from one export to the next.'''
-    global Flag_opt, Flag_EABS, Flag_opt_in_ANT
+    global Flag_opt, Flag_EABS, Flag_opt_in_ANT, bethe_layers
     Flag_opt = False
     Flag_EABS = False
     Flag_opt_in_ANT = False
+    bethe_layers = []
 
 def read_template(name):
     with open(f'PythonRutines/{name}', 'r') as read:
@@ -130,8 +132,23 @@ def optimization_protocol(opt_data, Semi_infinite_layer, z_order, counts):
             opt_resume[np.where(z_order == Nbtm + x)[0][0]] = 'z'
     return opt_resume
 
+def bethe_layer_offsets(layers):
+    '''Gaussian09 can only tie each Bethe plane to its own z variable, so the planes relax independently.
+    For each side with several planes, record every plane's original offset from the innermost one
+    (the layer touching the active electrode); link_opt.py restores these offsets after the optimisation.'''
+    sides = []
+    for side in ['zB', 'zT']:
+        planes = {var: layer for var, layer in layers.items() if var.startswith(side)}
+        if len(planes) < 2:
+            continue
+        innermost = max if side == 'zB' else min
+        reference = innermost(planes, key = lambda var: planes[var][0])
+        sides.append({'reference': reference,
+                      'layers': {var: [round(z0 - planes[reference][0], 6), atoms] for var, (z0, atoms) in planes.items()}})
+    return sides
+
 def opt_gjf(Poss, Elem, Opt_resume, Opt_data, DFT_opts):
-    global p_line, Flag_opt
+    global p_line, Flag_opt, bethe_layers
     #Juega con esto para añadir HOMO/LUMO representation, cambiar funcional...
     Flag_opt = False
     P_line = ''
@@ -151,7 +168,8 @@ def opt_gjf(Poss, Elem, Opt_resume, Opt_data, DFT_opts):
     Poss_lines = ''
     k_opt = 1
     layer_vars = {}
-    for elem, poss, opt in zip(Elem, Poss, Opt_resume):
+    layers = {}   # Bethe plane variable -> [original z, [atom indices]]
+    for idx, (elem, poss, opt) in enumerate(zip(Elem, Poss, Opt_resume)):
         if opt == 'fix':
             Poss_lines += f'{elem} {character}  {poss[0]:.6f}    {poss[1]:.6f}    {poss[2]:.6f}\n'
         elif opt == 'all':
@@ -170,9 +188,11 @@ def opt_gjf(Poss, Elem, Opt_resume, Opt_data, DFT_opts):
                 layer_vars[layer] = f'{opt}{sum(side == opt for side, _ in layer_vars)+1}'
                 Variable_lines += f'{layer_vars[layer]} = {poss[2]:.6f} \n'
             Poss_lines += f'{elem} {character}  {poss[0]:.6f}    {poss[1]:.6f}    {layer_vars[layer]}\n'
+            layers.setdefault(layer_vars[layer], [float(poss[2]), []])[1].append(idx)
         else:
             raise ValueError(f'Unknown optimisation mode {opt!r} for {elem}')
     Variable_lines += '\n'
+    bethe_layers = bethe_layer_offsets(layers)
     return P_line, Poss_lines, Variable_lines
 
 def charge_multiplicity(electrons, DFT_opts):
@@ -261,7 +281,7 @@ def create_gjf(name, Dir, Poss, Elem, Semi, Opt_resume, Opt_data, DFT_opts, acti
     return
 
 def create_python_conector(Dir, name, FlagEABS, text):
-    global Flag_opt, Flag_EABS, Flag_opt_in_ANT
+    global Flag_opt, Flag_EABS, Flag_opt_in_ANT, bethe_layers
     Flag_EABS = FlagEABS
     if not Flag_EABS and not Flag_opt:
         return
@@ -280,6 +300,7 @@ def create_python_conector(Dir, name, FlagEABS, text):
         out.write(f"log_file_path = 'input{name}.log' \n")
         out.write(f"P_line = f'{p_line}")
         out.write(" {intro}' \n")
+        out.write(f"Bethe_layers = {bethe_layers!r} \n")
         out.write(f"{text} \n")
         if not Flag_opt or Flag_opt_in_ANT:
             out.write(f"Ant1 = ''\n")
@@ -320,6 +341,7 @@ def create_python_OptFirstStep(Dir, name, Folder_name, N_folder, text_func):
         out.write(f"log_file_path = 'input{name}.log' \n")
         out.write(f"P_line = f'{p_line}")
         out.write(" {intro}' \n")
+        out.write(f"Bethe_layers = {bethe_layers!r} \n")
         if not Flag_opt_in_ANT:
             out.write(f"Ant1 = f'%Subst L502 {UserInfo['ANTDIRcall']}")
             out.write(" {intro}' \n")
@@ -352,6 +374,7 @@ def create_python_OptAllSteps(Dir, name, nxt, text_func):
         out.write(f"log_file_path = 'input{name}.log' \n")
         out.write(f"P_line = f'{p_line}")
         out.write(" {intro}' \n")
+        out.write(f"Bethe_layers = {bethe_layers!r} \n")
         if not Flag_opt_in_ANT:
             out.write(f"Ant1 = f'%Subst L502 {UserInfo['ANTDIRcall']}")
             out.write(" {intro}' \n")

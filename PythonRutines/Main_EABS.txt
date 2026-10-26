@@ -94,7 +94,8 @@ if __name__ == '__main__':
         
     symbols = symbols_list[-1]
     coordinates = coordinates_list[-1]
-        
+    coordinates, _ = restore_bethe_spacing(coordinates, {})
+
     bs_electrode, bs_molecule = divide_basisset(basisets, symbols)
         
     symbol_mol = symbols[Nbtm:Nbtm+Nmol]
