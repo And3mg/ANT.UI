@@ -97,3 +97,12 @@ def test_site_config_reload(tmp_path):
     finally:
         _DICS.load_user_conf()
     assert _DICS.site_config_warnings()                 # shipped placeholder again
+
+
+@pytest.mark.parametrize('chains, expected', [('first step', 'only the first folder is relaxed'),
+                                              ('every step', 'every folder is relaxed')])
+def test_chain_says_which_folders_are_relaxed(junction, opt_data, dft_opts, chains, expected):
+    # Referee 2, report item 4: name the relaxed starting point of a sequence
+    params = dict(dz=0.1, nz=3, both=True)
+    text, _ = text_of(*describe_export(junction(), 'pull', opt_data(Chains=chains, Molecule='all'), dft_opts(), params))
+    assert expected in text
