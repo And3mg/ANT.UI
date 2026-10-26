@@ -1,8 +1,9 @@
 from _DICS import *
 from _DFT import *
 from _SOC import *
+import ast
 import numpy as np
-from os import listdir, mkdir
+from os import listdir, mkdir, walk, path
 
 
 def create_xyz(Dir, name, Poss, Elem, N):
@@ -28,9 +29,9 @@ def create_xyz_film(Dir, name, POSS, ELEM, N):
 
 
 def create_reax(Dir, name, poss, Elem, N, types):
-    
+
     with open(f'{Dir}/{name}.dat','w') as file:
-        
+
         file.write('#Data file for LAMMPS \n')
         file.write('\n')
         file.write(f'{N} atoms \n')
@@ -40,539 +41,284 @@ def create_reax(Dir, name, poss, Elem, N, types):
         file.write(f'{poss[:,1].min()-5}   {poss[:,1].max()+5}  ylo yhi \n')
         file.write(f'{poss[:,2].min()-5}   {poss[:,2].max()+5}  zlo zhi \n \n')
         file.write('Masses \n \n')
-        
+
         for i,tp in enumerate(types):
             file.write(f'{i+1} {masses[tp]} \n')
 
         file.write('\n')
         file.write('Atoms \n \n')
-        
+
         index = 0
 
         for x, elem in zip(poss, Elem):
             index += 1
             file.write(f'    {index}   {types.searchsorted(elem)+1}   0   {np.round(x[0], 5)}    {np.round(x[1], 5)}    {np.round(x[2], 5)}\n')
-    
+
     return
 
-def Create_output(objs, Dir, name, opt_data, DFT_opts):
-    N = 0
-    for obj in objs:
-        N += obj.N
-        
-    Molecular_atoms = objs[1].Molecular_atoms.copy()
-    
+def assemble(objs):
+    '''Concatenate bottom electrode, molecule and top electrode, each sorted by z.
+    z_order maps output position -> index in the concatenated input.'''
+    counts = tuple(obj.N for obj in objs)
+    N = sum(counts)
     Poss = np.zeros((N,3))
     Elem = np.zeros(N, dtype = '<U2')
     Semi_infinite_layer = np.zeros(N, dtype = 'bool')
     Extremes = np.zeros(N, dtype = 'bool')
     z_order = np.zeros(N, dtype = 'int64')
     n = 0
-    for k,obj in enumerate(objs):
+    for obj in objs:
         Poss[n:obj.N+n] = obj.true_coordinates()
         Elem[n:obj.N+n] = obj.elements.copy()
         Semi_infinite_layer[n:obj.N+n] = obj.semi_infinite_layer.copy()
         Extremes[n:obj.N+n] = obj.extremes.copy()
-        if n == 0:
-            z_order[n:obj.N+n] = obj.poss[:,2].argsort()+np.max(z_order)
-        else:
-            z_order[n:obj.N+n] = obj.poss[:,2].argsort()+np.max(z_order)+1
+        z_order[n:obj.N+n] = obj.poss[:,2].argsort()+n
         n += obj.N
-    #z_order = Poss[:,2].argsort()
-    
-    Poss = Poss[z_order]
-    Elem = Elem[z_order]
-    Semi_infinite_layer = Semi_infinite_layer[z_order]
-    Extremes = Extremes[z_order]
-    opt_resume = optimization_protocol(opt_data, Elem, Semi_infinite_layer, z_order, N)
-    
-    DFTU = None
-    if DFT_opts['DFTU']:
-        DFTU = [objs[0].N+1, objs[0].N+objs[1].N, objs[1].U[DFT_opts['Functional']]]
-    
-    text = f'Nbtm, Nmol, Ntop = {objs[0].N}, {objs[1].N}, {objs[-1].N} \n'
+    return Poss[z_order], Elem[z_order], Semi_infinite_layer[z_order], Extremes[z_order], z_order, counts
+
+def dftu_block(objs, DFT_opts):
+    if not DFT_opts['DFTU']:
+        return None
+    return [objs[0].N+1, objs[0].N+objs[1].N, objs[1].U[DFT_opts['Functional']]]
+
+def verify_output(Dir):
+    '''Raise if any generated helper script is not valid Python. Returns the number of step folders.'''
+    problems = []
+    for folder, _, files in walk(Dir):
+        for f in files:
+            if f.endswith('.py'):
+                try:
+                    with open(f'{folder}/{f}') as src:
+                        ast.parse(src.read())
+                except SyntaxError as e:
+                    problems.append(f'{folder}/{f}, line {e.lineno}: {e.msg}')
+    if problems:
+        raise RuntimeError('Generated scripts are not valid Python:\n' + '\n'.join(problems))
+    return len([x for x in listdir(Dir) if path.isdir(f'{Dir}/{x}')])
+
+def Create_output(objs, Dir, name, opt_data, DFT_opts):
+    begin_export()
+    Poss, Elem, Semi_infinite_layer, Extremes, z_order, counts = assemble(objs)
+    opt_resume = optimization_protocol(opt_data, Semi_infinite_layer, z_order, counts)
+
+    text = f'Nbtm, Nmol, Ntop = {counts[0]}, {counts[1]}, {counts[2]} \n'
 
     create_gjf(name, Dir, Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts)
     create_python_conector(Dir, name, DFT_opts['EABS'] ,text)
     create_unisa(name, Dir)
-    create_ant(name, Dir, Elem[0], Elem[-1], DFTU)
-    create_xyz(Dir, name, Poss, Elem, N)
+    create_ant(name, Dir, Elem[0], Elem[-1], dftu_block(objs, DFT_opts))
+    create_xyz(Dir, name, Poss, Elem, len(Elem))
     return
-
-def optimization_protocol(opt_data, Elem, Semi_infinite_layer, z_order, N):
-    opt_resume = np.zeros(N, dtype = '<U20')
-    flag_top = False
-    first_mol = True
-
-    for i in range(N):
-        if Semi_infinite_layer[i]:
-            if flag_top: opt_resume[i] = opt_data['Top_Bethe']
-            else: opt_resume[i] = opt_data['Bottom_Bethe']
-        elif Elem[i] in Electrode_elem:
-            if flag_top: opt_resume[i] = opt_data['Top']
-            else: opt_resume[i] = opt_data['Bottom']
-        elif Elem[i] in Molecular_atoms:
-            flag_top = True
-            if opt_data['Molecule'] in ['all', 'fix', 'z']: opt_resume[i] = opt_data['Molecule']
-            else:
-                if first_mol: 
-                    n = i
-                    Mol_z_atoms = [np.where( x+n == z_order)[0][0] for x in opt_data['Molecule_z_atoms']]
-                    first_mol = False
-                if i in Mol_z_atoms:
-                    opt_resume[i] = 'z'
-                else: opt_resume[i] = 'all'
-    return opt_resume
 
 
 def Create_reax_output(objs, Dir, name):
-    N = 0
-    for obj in objs:
-        N += obj.N
-    
-    Poss = np.zeros((N,3))
-    Elem = np.zeros(N, dtype = '<U2')
-    Semi_infinite_layer = np.zeros(N, dtype = 'bool')
-    n = 0
-    for obj in objs:
-        Poss[n:obj.N+n] = obj.true_coordinates()
-        Elem[n:obj.N+n] = obj.elements.copy()
-        Semi_infinite_layer[n:obj.N+n] = obj.semi_infinite_layer.copy()
-        n += obj.N
-    
-    z_order = Poss[:,2].argsort()
-    
-    Poss = Poss[z_order]
-    Elem = Elem[z_order]
-    
+    Poss, Elem, _, _, _, _ = assemble(objs)
     types = np.unique(Elem)
-    
-    create_reax(Dir, name, Poss, Elem, N, types)
-    create_xyz(Dir, name, Poss, Elem, N)
+    create_reax(Dir, name, Poss, Elem, len(Elem), types)
+    create_xyz(Dir, name, Poss, Elem, len(Elem))
     return
 
 def Create_xyz_output(objs, Dir, name):
-    N = 0
-    for obj in objs:
-        N += obj.N
-    
-    Poss = np.zeros((N,3))
-    Elem = np.zeros(N, dtype = '<U2')
-    Semi_infinite_layer = np.zeros(N, dtype = 'bool')
-    n = 0
-    for obj in objs:
-        Poss[n:obj.N+n] = obj.true_coordinates()
-        Elem[n:obj.N+n] = obj.elements.copy()
-        Semi_infinite_layer[n:obj.N+n] = obj.semi_infinite_layer.copy()
-        n += obj.N
-    
-    z_order = Poss[:,2].argsort()
-    
-    Poss = Poss[z_order]
-    Elem = Elem[z_order]
-    
-    create_xyz(Dir, name, Poss, Elem, N)
+    Poss, Elem, _, _, _, _ = assemble(objs)
+    create_xyz(Dir, name, Poss, Elem, len(Elem))
     return
 
 def Create_output_soc(objs, Dir, name, opt_data, DFT_opts): #Crear SOC dft
-    N = 0
-    for obj in objs:
-        N += obj.N
-    
-    Molecular_atoms = objs[1].Molecular_atoms.copy()
+    begin_export()
+    Poss, Elem, Semi_infinite_layer, Extremes, z_order, counts = assemble(objs)
+    opt_resume = optimization_protocol(opt_data, Semi_infinite_layer, z_order, counts)
 
-    Poss = np.zeros((N,3))
-    Elem = np.zeros(N, dtype = '<U2')
-    Semi_infinite_layer = np.zeros(N, dtype = 'bool')
-    Extremes = np.zeros(N, dtype = 'bool')
-    z_order = np.zeros(N, dtype = 'int64')
+    text = f'Nbtm, Nmol, Ntop = {counts[0]}, {counts[1]}, {counts[2]} \n'
 
-    n = 0
-    for k,obj in enumerate(objs):
-        Poss[n:obj.N+n] = obj.true_coordinates()
-        Elem[n:obj.N+n] = obj.elements.copy()
-        Semi_infinite_layer[n:obj.N+n] = obj.semi_infinite_layer.copy()
-        Extremes[n:obj.N+n] = obj.extremes.copy()
-        if n == 0:
-            z_order[n:obj.N+n] = obj.poss[:,2].argsort()+np.max(z_order)
-        else:
-            z_order[n:obj.N+n] = obj.poss[:,2].argsort()+np.max(z_order)+1
-        n += obj.N
-        
-    #z_order = Poss[:,2].argsort()
-        
-    Poss = Poss[z_order]
-    Elem = Elem[z_order]
-    Semi_infinite_layer = Semi_infinite_layer[z_order]
-    Extremes = Extremes[z_order]
-    opt_resume = optimization_protocol(opt_data, Elem, Semi_infinite_layer, z_order, N)
-    
-    DFTU = None
-    if DFT_opts['DFTU']:
-        DFTU = [objs[0].N+1, objs[0].N+objs[1].N, objs[1].U[DFT_opts['Functional']]]
-                
-    create_gjf_soc(name, Dir, Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts) 
+    create_gjf_soc(name, Dir, Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts)
+    create_python_conector(Dir, name, DFT_opts['EABS'], text)
     create_unisa(name, Dir)
-    create_ant_soc(name, Dir, Elem[0], Elem[-1], DFTU, Elem, Semi_infinite_layer) #Can I apply SOC to the second layer of the semi-infinite electrode? I think yes, but I have to check it
-    create_xyz(Dir, name, Poss, Elem, N)
-    create_python_opt_conector(Dir,name)
+    create_ant_soc(name, Dir, Elem[0], Elem[-1], dftu_block(objs, DFT_opts), Elem, Semi_infinite_layer) #Can I apply SOC to the second layer of the semi-infinite electrode? I think yes, but I have to check it
+    create_xyz(Dir, name, Poss, Elem, len(Elem))
     return
 
-def Create_grid_output(objs, Dir, name, grid, opt_data, DFT_opts):
-    N = 0
-    for obj in objs:
-        N += obj.N
-    
-    Molecular_atoms = objs[1].Molecular_atoms.copy()
+def sequence_opt_resume(opt_data, Semi_infinite_layer, z_order, counts):
+    if opt_data['Chains'] == 'none':
+        return np.full(sum(counts), 'fix', dtype = '<U20'), False
+    return optimization_protocol(opt_data, Semi_infinite_layer, z_order, counts), True
 
-    Poss = np.zeros((N,3))
-    Elem = np.zeros(N, dtype = '<U2')
-    Semi_infinite_layer = np.zeros(N, dtype = 'bool')
-    Extremes = np.zeros(N, dtype = 'bool')
-    z_order = np.zeros(N, dtype = 'int64')
-    n = 0
-    
-    N_up = objs[-1].N
+def Create_grid_output(objs, Dir, name, grid, opt_data, DFT_opts):
+    begin_export()
+    Poss, Elem, Semi_infinite_layer, Extremes, z_order, counts = assemble(objs)
+    N = len(Elem)
+    N_up = counts[2]
 
     x = np.linspace(grid[0][0], grid[0][1], grid[0][2])
     y = np.linspace(grid[1][0], grid[1][1], grid[1][2])
-        
-    for obj in objs:
-        Poss[n:obj.N+n] = obj.true_coordinates()
-        Elem[n:obj.N+n] = obj.elements.copy()
-        Semi_infinite_layer[n:obj.N+n] = obj.semi_infinite_layer.copy()
-        Extremes[n:obj.N+n] = obj.extremes.copy()
-        if n == 0:
-            z_order[n:obj.N+n] = obj.poss[:,2].argsort()+np.max(z_order)
-        else:
-            z_order[n:obj.N+n] = obj.poss[:,2].argsort()+np.max(z_order)+1
-        n += obj.N
-    
-    #z_order = Poss[:,2].argsort()
-    
-    Poss = Poss[z_order]
-    Elem = Elem[z_order]
-    Semi_infinite_layer = Semi_infinite_layer[z_order]
-    Extremes = Extremes[z_order]
-    
+    n_points = grid[0][2]*grid[1][2]
+
     up_poss = objs[-1].poss.copy()[z_order[N-N_up:]-np.min(z_order[N-N_up:])]
-    
-    count = 0
-    Names = []
-    POSS = []
-    ELEM = []
-    grid_dat = open(f'{Dir}/grid_data.dat', 'w')
-    grid_dat.write(f'z = {grid[2]} \n \n')
-    
-    DFTU = None
-    if DFT_opts['DFTU']:
-        DFTU = [objs[0].N+1, objs[0].N+objs[1].N, objs[1].U[DFT_opts['Functional']]]
-                
-    if opt_data['Chains'] == 'none':
-        opt_resume = np.zeros(N, dtype = '<U20')
-        opt_resume[:] = 'fix'
-        opt_flag = False
-    else:
-        opt_resume = optimization_protocol(opt_data, Elem, Semi_infinite_layer, z_order, N)
-        opt_flag = True
-        first = True
 
-    
-    name_number = []
-    for i in range(grid[0][2]*grid[1][2]):
-        i = ('0'*(len(str(grid[0][2]*grid[1][2]))-len(str(i+1)))) + str(i+1)
-        name_number.append(i)
+    DFTU = dftu_block(objs, DFT_opts)
+    opt_resume, opt_flag = sequence_opt_resume(opt_data, Semi_infinite_layer, z_order, counts)
+    name_number = [str(i+1).zfill(len(str(n_points))) for i in range(n_points)]
 
+    # Snake path over the grid: y runs forwards, then backwards on the next x
     Grid = []
     for i in x:
         for j in y:
-            Grid.append((i,j))
+            Grid.append((float(i), float(j)))
         y = y[::-1]
 
-    y = np.linspace(grid[1][0], grid[1][1], grid[1][2]) 
-
-    for i in x:
-        for j in y:
+    POSS = []
+    ELEM = []
+    with open(f'{Dir}/grid_data.dat', 'w') as grid_dat:
+        grid_dat.write(f'z = {float(grid[2])} \n \n')
+        for count, (i, j) in enumerate(Grid):
+            step = f'{name}_{name_number[count]}'
+            step_dir = f'{Dir}/{step}'
             Poss[N-N_up:] = up_poss + np.array([i,j,grid[2]])
-            mkdir(Dir+f'/{name}_{name_number[count]}')
-            Names.append(f'{name}_{name_number[count]}')
-            
-            if opt_flag:
-                if first:
-                    first = False
-                    create_gjf(Names[-1], f'{Dir}/{name}_{name_number[count]}', Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts)
+            mkdir(step_dir)
 
-                    if opt_data['Chains'] == 'first step':
-                        text = f'Nbtm, Nmol, Ntop = {objs[0].N}, {objs[1].N}, {N_up} \n'
-                        text += f'Grid = {Grid} \n'
-                        text += f'I = 0 \n \n'
-                        n = "0"*(len(str(grid[0][2]*grid[1][2])))
-                        text += f"Next_folder = '{name}_{n}' \n"                
+            if not opt_flag or count == 0:
+                create_gjf(step, step_dir, Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts)
 
-                        with open('PythonRutines/Move_grid.txt', 'r') as read:
-                            text += read.read()   
-                        text += '\n'
-                        create_python_OptFirstStep(f'{Dir}/{name}_{name_number[count]}', Names[-1], name, grid[0][2]*grid[1][2], text)
-                    
-                if opt_data['Chains'] == 'every step':
-                    text = f'Nbtm, Nmol, Ntop = {objs[0].N}, {objs[1].N}, {N_up} \n'
-                    text += f'Grid = {Grid} \n'
-                    text += f'I = {count} \n \n'
-                    with open('PythonRutines/Move_grid.txt', 'r') as read:
-                        text += read.read()   
-                    text += '\n'
-                    try:
-                        nxt = f'{name}_{name_number[count+1]}'
-                    except:
-                        nxt = ''
-                    create_python_OptAllSteps(f'{Dir}/{name}_{name_number[count]}', Names[-1], nxt, text)
-            else:
-                create_gjf(Names[-1], f'{Dir}/{name}_{name_number[count]}', Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts)
+            text = f'Nbtm, Nmol, Ntop = {counts[0]}, {counts[1]}, {N_up} \n'
+            text += f'Grid = {Grid} \n'
+            if opt_data['Chains'] == 'first step' and count == 0:
+                text += f'I = 0 \n \n'
+                text += f"Next_folder = '{name}_{'0'*len(str(n_points))}' \n"
+                text += read_template('Move_grid.txt') + '\n'
+                create_python_OptFirstStep(step_dir, step, name, n_points, text)
+            elif opt_data['Chains'] == 'every step':
+                text += f'I = {count+1} \n \n'  # move from this grid point to the next one
+                text += read_template('Move_grid.txt') + '\n'
+                nxt = f'{name}_{name_number[count+1]}' if count+1 < n_points else ''
+                create_python_OptAllSteps(step_dir, step, nxt, text)
 
-            create_ant(Names[-1], f'{Dir}/{name}_{name_number[count]}', Elem[0], Elem[-1], DFTU, DOSAT= N-obj.N +1)
+            create_ant(step, step_dir, Elem[0], Elem[-1], DFTU, DOSAT= N-N_up+1)
             POSS.append(Poss.copy())
             ELEM.append(Elem)
             grid_dat.write(f'{name_number[count]}: x = {i} , y = {j} \n')
 
-            count+=1
-        y = y[::-1]
-    grid_dat.close()
-    create_unisa_multi(count, Dir, opt_data['Chains'])
+    create_unisa_multi(n_points, Dir, opt_data['Chains'])
     create_xyz_film(Dir, name, POSS, ELEM, N)
     return
 
 def Create_pull_output(objs, Dir, name, dz, nz, both, opt_data, DFT_opts):
-    N = 0
-    for obj in objs:
-        N += obj.N
-    
-    Molecular_atoms = objs[1].Molecular_atoms.copy()
+    '''Step k moves the top electrode by k*dz, or each electrode by k*dz/2 in opposite directions if both.
+    Either way the gap grows by dz per step.'''
+    begin_export()
+    Poss, Elem, Semi_infinite_layer, Extremes, z_order, counts = assemble(objs)
+    N = len(Elem)
+    N_down, N_mol, N_up = counts
 
-    Poss = np.zeros((N,3))
-    Elem = np.zeros(N, dtype = '<U2')
-    Semi_infinite_layer = np.zeros(N, dtype = 'bool')
-    Extremes = np.zeros(N, dtype = 'bool')
-    z_order = np.zeros(N, dtype = 'int64')
-    n = 0
-    
-    N_up = objs[-1].N
-    N_down = objs[0].N
-
+    steps = np.arange(nz)
     if both:
-        z_up = np.arange(0, dz*nz/2, dz/2)
-        z_down = -np.arange(0, dz*nz/2, dz/2)
+        z_up = steps*dz/2
+        z_down = -steps*dz/2
     else:
-        z_up = np.arange(0, dz*nz, dz)
+        z_up = steps*dz
         z_down = np.zeros(nz)
 
-            
-    for obj in objs:
-        Poss[n:obj.N+n] = obj.true_coordinates()
-        Elem[n:obj.N+n] = obj.elements.copy()
-        Semi_infinite_layer[n:obj.N+n] = obj.semi_infinite_layer.copy()
-        Extremes[n:obj.N+n] = obj.extremes.copy()
-        if n == 0:
-            z_order[n:obj.N+n] = obj.poss[:,2].argsort()+np.max(z_order)
-        else:
-            z_order[n:obj.N+n] = obj.poss[:,2].argsort()+np.max(z_order)+1
-        n += obj.N
-    
-    #z_order = Poss[:,2].argsort()
-    
-    Poss = Poss[z_order]
-    Elem = Elem[z_order]
-    Semi_infinite_layer = Semi_infinite_layer[z_order]
-    Extremes = Extremes[z_order]
-    
-    up_poss = objs[-1].true_coordinates().copy()[z_order[N-N_up:]-np.min(z_order[N-N_up:])]
-    down_poss = objs[0].true_coordinates().copy()[z_order[:N_down]-np.min(z_order[:N_down])]
-    
-    count = 0
-    Names = []
+    up_poss = Poss[N-N_up:].copy()
+    down_poss = Poss[:N_down].copy()
+
+    DFTU = dftu_block(objs, DFT_opts)
+    opt_resume, opt_flag = sequence_opt_resume(opt_data, Semi_infinite_layer, z_order, counts)
+    name_number = [str(i+1).zfill(len(str(nz))) for i in range(nz)]
+
     POSS = []
     ELEM = []
-    pull_dat = open(f'{Dir}/pull_data.dat', 'w')
-    pull_dat.write(f'{dz} {nz} {both} \n \n')
-    
-    DFTU = None
-    if DFT_opts['DFTU']:
-        DFTU = [objs[0].N+1, objs[0].N+objs[1].N, objs[1].U[DFT_opts['Functional']]]
-                
-    if opt_data['Chains'] == 'none':
-        opt_resume = np.zeros(N, dtype = '<U20')
-        opt_resume[:] = 'fix'
-        opt_flag = False
-    else:
-        opt_resume = optimization_protocol(opt_data, Elem, Semi_infinite_layer, z_order, N)
-        opt_flag = True
-        first = True
+    with open(f'{Dir}/pull_data.dat', 'w') as pull_dat:
+        pull_dat.write(f'{dz} {nz} {both} \n \n')
+        for count, (zu, zd) in enumerate(zip(z_up, z_down)):
+            step = f'{name}_{name_number[count]}'
+            step_dir = f'{Dir}/{step}'
+            Poss[N-N_up:] = up_poss + np.array([0,0,zu])
+            Poss[:N_down] = down_poss + np.array([0,0,zd])
+            mkdir(step_dir)
 
-    name_number = []
-    for i in range(nz):
-        i = ('0'*(len(str(nz))-len(str(i+1)))) + str(i+1)
-        name_number.append(i)
+            if not opt_flag or count == 0:
+                create_gjf(step, step_dir, Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts)
 
-    for zu,zd in zip(z_up, z_down):
-        
-        Poss[N-N_up:] = up_poss + np.array([0,0,zu])
-        Poss[:N_down] = down_poss + np.array([0,0,zd])
-        mkdir(Dir+f'/{name}_{name_number[count]}')
-        Names.append(f'{name}_{name_number[count]}')
-        
-        if opt_flag:
-            if first:
-                first = False
-                create_gjf(Names[-1], f'{Dir}/{name}_{name_number[count]}', Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts)
+            text = f'Nbtm, Nmol, Ntop = {N_down}, {N_mol}, {N_up} \n'
+            text += f'dz = {float(dz)} \n'
+            text += f'both = {both} \n \n'
+            if opt_data['Chains'] == 'first step' and count == 0:
+                text += f"Next_folder = '{name}_{'0'*len(str(nz))}' \n"
+                text += read_template('Move_pull.txt') + '\n'
+                create_python_OptFirstStep(step_dir, step, name, nz, text)
+            elif opt_data['Chains'] == 'every step':
+                text += read_template('Move_pull.txt') + '\n'
+                nxt = f'{name}_{name_number[count+1]}' if count+1 < nz else ''
+                create_python_OptAllSteps(step_dir, step, nxt, text)
 
-                if opt_data['Chains'] == 'first step':
-                    text = f'Nbtm, Nmol, Ntop = {N_down}, {objs[1].N}, {N_up} \n'
-                    text += f'dz = {dz} \n'
-                    text += f'both = {both} \n \n'
-                    text += f'Next_folder = {name}_{str(i).zfill(len(str(len(nz))))} \n'                 
+            create_ant(step, step_dir, Elem[0], Elem[-1], DFTU)
+            POSS.append(Poss.copy())
+            ELEM.append(Elem)
+            pull_dat.write(f'{name_number[count]}: top dz = {zu:.4f} , bottom dz = {zd:.4f} , gap change = {zu-zd:.4f} \n')
 
-                    with open('PythonRutines/Move_pull.txt', 'r') as read:
-                        text += read.read()   
-                    text += '\n'
-                    create_python_OptFirstStep(f'{Dir}/{name}_{name_number[count]}', Names[-1], name, nz, text)
-
-            if opt_data['Chains'] == 'every step':
-                text = f'Nbtm, Nmol, Ntop = {N_down}, {objs[1].N}, {N_up} \n'
-                text += f'dz = {dz} \n'
-                text += f'both = {both} \n \n'
-                with open('PythonRutines/Move_pull.txt', 'r') as read:
-                    text += read.read()   
-                text += '\n'
-                try:
-                    nxt = f'{name}_{name_number[count+1]}'
-                except:
-                    nxt = ''
-                create_python_OptAllSteps(f'{Dir}/{name}_{name_number[count]}', Names[-1], nxt, text)
-
-        else:
-            create_gjf(Names[-1], f'{Dir}/{name}_{name_number[count]}', Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts)
-        create_ant(Names[-1], f'{Dir}/{name}_{name_number[count]}', Elem[0], Elem[-1], DFTU)
-        POSS.append(Poss.copy())
-        ELEM.append(Elem)
-        count+=1
-            
-    pull_dat.close()
-    create_unisa_multi(count, Dir, opt_data['Chains'])
+    create_unisa_multi(nz, Dir, opt_data['Chains'])
     create_xyz_film(Dir, name, POSS, ELEM, N)
     return
 
 def Create_rot_output(objs, Dir, name, angles, boolean_data, SOC, opt_data, DFT_opts):
-    N = 0
-    for obj in objs:
-        N += obj.N
- 
-    Molecular_atoms = objs[1].Molecular_atoms.copy()        
+    '''Rotate the selected components about the z axis through their centres, by each angle in
+    angles, measured from the orientation they have in the viewer.'''
+    begin_export()
+    Poss, Elem, Semi_infinite_layer, Extremes, z_order, counts = assemble(objs)
+    N = len(Elem)
+    ns = (0, counts[0], counts[0]+counts[1], N)
+    angles = [float(a) for a in angles]   # plain floats: numpy>=2 scalar reprs would leak into link_opt.py
+    dtheta = angles[1]-angles[0] if len(angles) > 1 else 0.0
+    width = len(str(len(angles)))
 
-    Poss = np.zeros((N,3))
-    Elem = np.zeros(N, dtype = '<U2')
-    Semi_infinite_layer = np.zeros(N, dtype = 'bool')
-    Extremes = np.zeros(N, dtype = 'bool')
-    z_order = np.zeros(N, dtype = 'int64')
-    n = 0
-    
-    ns = (0, objs[0].N, objs[0].N+objs[1].N, N)
+    DFTU = dftu_block(objs, DFT_opts)
+    opt_resume, opt_flag = sequence_opt_resume(opt_data, Semi_infinite_layer, z_order, counts)
+    write_gjf = create_gjf_soc if SOC else create_gjf
 
-
-    for obj in objs:
-        Poss[n:obj.N+n] = obj.true_coordinates()
-        Elem[n:obj.N+n] = obj.elements.copy()
-        Semi_infinite_layer[n:obj.N+n] = obj.semi_infinite_layer.copy()
-        Extremes[n:obj.N+n] = obj.extremes.copy()
-        if n == 0:
-            z_order[n:obj.N+n] = obj.poss[:,2].argsort()+np.max(z_order)
-        else:
-            z_order[n:obj.N+n] = obj.poss[:,2].argsort()+np.max(z_order)+1
-        n += obj.N
-        
-    Poss = Poss[z_order]
-    Elem = Elem[z_order]
-    Semi_infinite_layer = Semi_infinite_layer[z_order]
-    Extremes = Extremes[z_order]
-
-    opt_resume = optimization_protocol(opt_data, Elem, Semi_infinite_layer, z_order, N)
-
-    Names = []
+    start_angles = [obj.euler_angles.astype(float).copy() for obj in objs]
     POSS = []
     ELEM = []
-    rot_dat = open(f'{Dir}/rotation_data.dat', 'w')
-    rot_dat.write(f'From {angles[0]} to {angles[-1]} by steps of {angles[1]-angles[0]} \n \n')
-    
-    DFTU = None
-    if DFT_opts['DFTU']:
-        DFTU = [objs[0].N+1, objs[0].N+objs[1].N, objs[1].U[DFT_opts['Functional']]]
-    
-    if opt_data['Chains'] == 'none':
-        opt_resume = np.zeros(N, dtype = '<U20')
-        opt_resume[:] = 'fix'
-        opt_flag = False
-    else:
-        opt_resume = optimization_protocol(opt_data, Elem, Semi_infinite_layer, z_order, N)
-        opt_flag = True
-        first = True
+    try:
+        with open(f'{Dir}/rotation_data.dat', 'w') as rot_dat:
+            rot_dat.write(f'From {angles[0]} to {angles[-1]} by steps of {dtheta} (degrees, relative to the starting orientation) \n \n')
+            for i,psi in enumerate(angles):
+                for j,flag in enumerate(boolean_data):
+                    if flag:
+                        objs[j].euler_angles = start_angles[j] + np.array([0., 0., psi])
+                        Poss[ns[j]:ns[j+1]] = objs[j].true_coordinates()[z_order[ns[j]:ns[j+1]]-ns[j]]
 
-    for i,psi in enumerate(angles):
-        for j,flag in enumerate(boolean_data):
-            if flag:
-                objs[j].euler_angles[2] = psi  #Si metes rotar en x o y o z, es cambiar ese número a 0, 1 o 2
-                Poss[ns[j]:ns[j+1]] = objs[j].true_coordinates()[z_order[ns[j]:ns[j+1]]-np.min(z_order[ns[j]:ns[j+1]])]
+                step = f'{name}_{str(i+1).zfill(width)}'
+                step_dir = f'{Dir}/{step}'
+                mkdir(step_dir)
 
-        mkdir(Dir+f'/{name}_{str(i+1).zfill(len(str(len(angles))))}')
-        Names.append(f'{name}_{str(i+1).zfill(len(str(len(angles))))}')
+                if not opt_flag or i == 0:
+                    write_gjf(step, step_dir, Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts)
 
-        if opt_flag:
-            if first:
-                first = False
-                if SOC:
-                    create_gjf_soc(Names[-1], f'{Dir}/{name}_{str(i+1).zfill(len(str(len(angles))))}', Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts)
-                else:
-                    create_gjf(Names[-1], f'{Dir}/{name}_{str(i+1).zfill(len(str(len(angles))))}', Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts)
-
-                if opt_data['Chains'] == 'first step':
-                    text = f'Nbtm, Nmol, Ntop = {objs[0].N}, {objs[1].N}, {objs[-1].N} \n'
-                    text += f'dtheta = {angles[1]-angles[0]} \n'
-                    text += f'Flag_bottom = {boolean_data[0]} \n'
-                    text += f'Flag_mol = {boolean_data[1]} \n'
-                    text += f'Flag_top = {boolean_data[2]} \n'   
-                    text += f'Next_folder = {name}_{str(i).zfill(len(str(len(angles))))} \n'                 
-                    with open('PythonRutines/Move_rot.txt', 'r') as read:
-                        text += read.read()   
-                    text += '\n'
-                    create_python_OptFirstStep(f'{Dir}/{name}_{str(i+1).zfill(len(str(len(angles))))}', Names[-1], name, len(angles), text)
-                    
-            if opt_data['Chains'] == 'every step':
-                text = f'Nbtm, Nmol, Ntop = {objs[0].N}, {objs[1].N}, {objs[-1].N} \n'
-                text += f'dtheta = {angles[1]-angles[0]} \n'
+                text = f'Nbtm, Nmol, Ntop = {counts[0]}, {counts[1]}, {counts[2]} \n'
+                text += f'dtheta = {dtheta} \n'
                 text += f'Flag_bottom = {boolean_data[0]} \n'
                 text += f'Flag_mol = {boolean_data[1]} \n'
                 text += f'Flag_top = {boolean_data[2]} \n'
-                with open('PythonRutines/Move_rot.txt', 'r') as read:
-                    text += read.read()   
-                text += '\n'
-                try:
-                    nxt = f'{name}_{str(i+2).zfill(len(str(len(angles))))}'
-                except:
-                    nxt = ''
-                create_python_OptAllSteps(f'{Dir}/{name}_{str(i+1).zfill(len(str(len(angles))))}', Names[-1], nxt, text)
+                if opt_data['Chains'] == 'first step' and i == 0:
+                    text += f"Next_folder = '{name}_{'0'*width}' \n"
+                    text += read_template('Move_rot.txt') + '\n'
+                    create_python_OptFirstStep(step_dir, step, name, len(angles), text)
+                elif opt_data['Chains'] == 'every step':
+                    text += read_template('Move_rot.txt') + '\n'
+                    nxt = f'{name}_{str(i+2).zfill(width)}' if i+1 < len(angles) else ''
+                    create_python_OptAllSteps(step_dir, step, nxt, text)
 
-        else:
-            if SOC:
-                create_gjf_soc(Names[-1], f'{Dir}/{name}_{str(i+1).zfill(len(str(len(angles))))}', Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts)
-            else:
-                create_gjf(Names[-1], f'{Dir}/{name}_{str(i+1).zfill(len(str(len(angles))))}', Poss, Elem, Extremes, opt_resume, opt_data, DFT_opts)
-        if SOC:
-            create_ant_soc(Names[-1], f'{Dir}/{name}_{str(i+1).zfill(len(str(len(angles))))}',  Elem[0], Elem[-1], DFTU, Elem, Semi_infinite_layer)
-        else:
-            create_ant(Names[-1], f'{Dir}/{name}_{str(i+1).zfill(len(str(len(angles))))}', Elem[0], Elem[-1], DFTU)
+                if SOC:
+                    create_ant_soc(step, step_dir, Elem[0], Elem[-1], DFTU, Elem, Semi_infinite_layer)
+                else:
+                    create_ant(step, step_dir, Elem[0], Elem[-1], DFTU)
 
-        POSS.append(Poss.copy())
-        ELEM.append(Elem)
-            
-    rot_dat.close()
+                POSS.append(Poss.copy())
+                ELEM.append(Elem)
+                rot_dat.write(f'{str(i+1).zfill(width)}: {psi} \n')
+    finally:
+        for obj, start in zip(objs, start_angles):
+            obj.euler_angles = start
+            obj.true_coordinates()
+
     create_unisa_multi(len(angles), Dir, opt_data['Chains'])
     create_xyz_film(Dir, name, POSS, ELEM, N)
     return
-

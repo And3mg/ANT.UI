@@ -21,10 +21,10 @@ if __name__ == '__main__':
                     out.write(f"{elem_dict[symbol]} {coords[0]}, {coords[1]}, {coords[2]}{intro}")
         
         create_gjf(header, basisets, [elem_dict[x] for x in symbols], coordinates)
-        for I in range(int(N_folder)):
+        # Step I (0-based) is the relaxed first step moved I times; step 0 is this folder
+        for I in range(1, int(N_folder)):
             i = ('0'*(len(str(N_folder))-len(str(I+1)))) + str(I+1)
             j = ('0'*(len(str(N_folder))-len(str(I)))) + str(I)
-            coordinates,_ = move(coordinates, [])
+            coordinates,_ = move(coordinates, {})
             header = header.replace(f'input{Folder_name}_{j}', f'input{Folder_name}_{i}')
-            if I != 0:
-                create_rest_gjf(header, basisets, [elem_dict[x] for x in symbols], coordinates, Folder_name+'_'+i)
+            create_rest_gjf(header, basisets, [elem_dict[x] for x in symbols], coordinates, Folder_name+'_'+i)

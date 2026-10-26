@@ -31,6 +31,29 @@ masses = {
     'Th': 232.04, 'Pa': 231.04, 'U': 238.03, 'Np': 237.0, 'Pu': 244.0, 'Am': 243.0, 'Cm': 247.0
 }
 
+# Atomic numbers (the masses table above is in periodic-table order)
+atomic_number = {elem: z for z, elem in enumerate(masses, start=1)}
+
+# Core electrons replaced by the Hay-Wadt LANL2DZ ECP: (first Z, last Z, core)
+LANL2DZ_CORE = [(1, 10, 0), (11, 30, 10), (31, 48, 28), (49, 57, 46), (72, 80, 60), (81, 83, 78)]
+
+def lanl2dz_core(elem):
+    z = atomic_number[elem]
+    for first, last, core in LANL2DZ_CORE:
+        if first <= z <= last:
+            return core
+    raise KeyError(f'No LANL2DZ ECP for {elem}')
+
+def ecp_core(ecp_text, elem):
+    '''Core electrons removed by an ECP block: the lanl2dz keyword, an explicit
+    "NAME lmax ncore" block, or nothing (all-electron basis).'''
+    lines = [l.split() for l in ecp_text.split('\n') if l.strip()]
+    if not lines:
+        return 0
+    if lines[0][0].lower() == 'lanl2dz':
+        return lanl2dz_core(elem)
+    return int(lines[0][2])
+
 # Colors (distinct colors chosen for visualization)
 colores = {
     'H': '#ffffff', 'He': '#d9ffff', 'Li': '#cc80ff', 'Be': '#c2ff00', 'B': '#ffb5b5', 'C': '#909090', 'N': '#3050f8',
@@ -149,6 +172,8 @@ with open('USER_CONF.txt', 'r') as file:
             while not '#%%' in line:
                 txt += line 
                 line = file.readline()
+            if key != 'JOBHEAD':  # '#' starts a comment, except in the shell header (#SBATCH, #PBS...)
+                txt = ''.join(l.split('#')[0].rstrip() + '\n' for l in txt.split('\n') if l.split('#')[0].strip())
             if 'call' in key:
                 UserInfo[key] = txt.split()[0]
             else:

@@ -1,0 +1,25 @@
+name: tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  pytest:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        python: ['3.9', '3.12']
+        numpy: ['numpy<2', 'numpy>=2']
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} / py${{ matrix.python }} / ${{ matrix.numpy }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install "${{ matrix.numpy }}" matplotlib customtkinter pytest
+      # The GUI tests open the real window on Windows; on Linux runners (no display) they are skipped.
+      - run: python -m pytest -rs

@@ -37,6 +37,7 @@ pip install -r requirements-hpc.txt
    ```bash
    python ANT.UI.py
    ```
+   It can be started from any folder. On Windows you can also double-click `ANT.UI.bat` (or send it to the desktop as a shortcut).
 
 3. **Build your junction** — select electrodes and molecule, position them with the sliders, set DFT options, and press **Create ANT** (or **Create xyz** / **SOC ANT**) to generate the output folder.
 

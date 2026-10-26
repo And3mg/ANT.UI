@@ -22,6 +22,7 @@ def extract_final_positions(log_file_path):
     # Initialize variables to store atom symbols and coordinates
     all_atom_symbols = []
     all_atom_coordinates = []
+    variable_dict = {}
 
     # Regular expressions to match atom lines
     atom_line_pattern = re.compile(r'^\s*(\d+)\s+(\d+)\s+(\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$')
@@ -69,9 +70,6 @@ def extract_final_positions(log_file_path):
             # Find all matches within the last interval
             variable_matches = variable_pattern.finditer(last_interval)
 
-            # Initialize a dictionary to store variable names and values
-            variable_dict = {}
-
             # Iterate over matches and extract variable names and values
             for var_match in variable_matches:
                 var_name, var_value = var_match.groups()
@@ -88,13 +86,13 @@ def read_opt_gjf(optgjf_path):
     poss_part = []
     basisets = ''
 
-    end_header = re.compile(r'(\d+),(\d+)\s*$')
+    end_header = re.compile(r'\s*(-?\d+)\s*,\s*(\d+)\s*$')
     variables = re.compile(r'Variables:\s*$')
     begin_sets = re.compile(r'([A-Za-z])\s+(\d+)\s*$')
     
     with open(optgjf_path, 'r') as file:
         line = file.readline()
-        while len(line.split('#')) < 2:
+        while not line.lstrip().startswith('#'):  # Link0 lines come before the route line
             header += line
             header_notmod += line
             line = file.readline()
