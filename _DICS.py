@@ -131,12 +131,16 @@ def load_dft_data(route):
                 line = dat_base.readline()
     return base, pot
 
+DFT_basis_source = {}       # element -> file the active-electrode basis comes from
+DFT_min_basis_source = {}   # element -> file the Bethe anchor basis comes from
+
 for item in listdir('DFT_min_basis_pseudopot'):
     if item.split('.')[-1] == 'gbs':
         _elem = item.split('_')[0]
         _basis, _pseudopot = load_dft_data(f'DFT_min_basis_pseudopot/{item}')
         DFT_min_basis.update({_elem: _basis})
         DFT_min_pseudopotentials.update({_elem: _pseudopot})
+        DFT_min_basis_source.update({_elem: f'DFT_min_basis_pseudopot/{item}'})
 
         
 Electrode_elem = [x for x in DFT_min_basis.keys()]
@@ -147,39 +151,58 @@ for item in listdir('DFT_basis_pseudopot'):
         _basis, _pseudopot = load_dft_data(f'DFT_basis_pseudopot/{item}')
         DFT_basis.update({_elem: _basis})
         DFT_pseudopotentials.update({_elem: _pseudopot})
+        DFT_basis_source.update({_elem: f'DFT_basis_pseudopot/{item}'})
 
 for elem in Electrode_elem:
     if not elem in DFT_basis.keys():
         DFT_basis.update({elem: 'lanl2dz \n'})
         DFT_pseudopotentials.update({elem: 'lanl2dz \n'})
+        DFT_basis_source.update({elem: 'lanl2dz (built-in default)'})
 
 
 #### Read user information
-UserInfo = {'ANTDIRcall': '', 'JOBHEAD': '', 'GAUSSIANHEAD': '', 'G09call':'g09', 
-            'PYTHONcall': 'python3', 'ANTpredet': '', 'U_ELECTRON_SCREENING': 1.0,
-            'ZMAX': 20.0}
+UserInfo = {}
+USER_CONF_DEFAULTS = {'ANTDIRcall': '', 'JOBHEAD': '', 'GAUSSIANHEAD': '', 'G09call':'g09', 
+                      'PYTHONcall': 'python3', 'ANTpredet': '', 'U_ELECTRON_SCREENING': 1.0,
+                      'ZMAX': 20.0, 'OUTPUTDIR': 'Outputs'}
+JOBHEAD_PLACEHOLDERS = ['PLACEHOLDER', 'Your tipical submision script header']
 
-with open('USER_CONF.txt', 'r') as file:
-    line = 'not null'
-    while line != '':
-        line = file.readline()
-        if '#%%' in line:
-            key = file.readline().split()[0]
-            #if not key in UserInfo.keys():
-            #    raise(f'Invalid key on UserInfo: {key}')
+def load_user_conf(route = 'USER_CONF.txt'):
+    """(Re)read the site configuration into UserInfo, in place, so every module sees the new values."""
+    UserInfo.clear()
+    UserInfo.update(USER_CONF_DEFAULTS)
+    with open(route, 'r') as file:
+        line = 'not null'
+        while line != '':
             line = file.readline()
-            txt = ''
-            while not '#%%' in line:
-                txt += line 
+            if '#%%' in line:
+                key = file.readline().split()[0]
                 line = file.readline()
-            if key != 'JOBHEAD':  # '#' starts a comment, except in the shell header (#SBATCH, #PBS...)
-                txt = ''.join(l.split('#')[0].rstrip() + '\n' for l in txt.split('\n') if l.split('#')[0].strip())
-            if 'call' in key:
-                UserInfo[key] = txt.split()[0]
-            else:
-                try:
-                    UserInfo[key] = float(txt.split()[0])
-                except:
-                    UserInfo[key] = txt
+                txt = ''
+                while not '#%%' in line:
+                    txt += line 
+                    line = file.readline()
+                if key != 'JOBHEAD':  # '#' starts a comment, except in the shell header (#SBATCH, #PBS...)
+                    txt = ''.join(l.split('#')[0].rstrip() + '\n' for l in txt.split('\n') if l.split('#')[0].strip())
+                if 'call' in key:
+                    UserInfo[key] = txt.split()[0]
+                elif key == 'OUTPUTDIR':
+                    UserInfo[key] = txt.strip() or 'Outputs'
+                else:
+                    try:
+                        UserInfo[key] = float(txt.split()[0])
+                    except:
+                        UserInfo[key] = txt
 
-        line = file.readline()
+            line = file.readline()
+    return UserInfo
+
+def site_config_warnings():
+    warnings = []
+    if any(p in UserInfo['JOBHEAD'] for p in JOBHEAD_PLACEHOLDERS) or not UserInfo['JOBHEAD'].strip():
+        warnings.append('JOBHEAD in USER_CONF.txt is still the placeholder: launchANT.sh will not have your cluster job header.')
+    if not UserInfo['ANTDIRcall']:
+        warnings.append('ANTDIRcall in USER_CONF.txt is empty: Gaussian will not find the ANT links (L502/L101).')
+    return warnings
+
+load_user_conf()

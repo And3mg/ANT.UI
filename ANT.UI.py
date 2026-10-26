@@ -292,6 +292,29 @@ def next_output_name(base, folder = 'Outputs'):
     numbers = [int(m.group(1)) for m in (pattern.match(x) for x in listdir(folder)) if m]
     return f'{base}-{max(numbers, default = 0)+1:04}'
 
+def rotation_angles(frm, to, by):
+    '''Angles of a rotation scan: from frm to to (both included) in steps of by degrees.'''
+    if by == 0 or (to-frm)*by < 0:
+        raise ValueError('Rotation Assistant: the step must be non-zero and go from "from" towards "to".')
+    return frm + by*np.arange(int(round((to-frm)/by))+1)
+
+def optional_int(text, label):
+    '''Empty or "auto" means automatic (None); anything else must be an integer.'''
+    text = text.strip()
+    if text.lower() in ['', 'auto']:
+        return None
+    try:
+        return int(text)
+    except ValueError:
+        raise ValueError(f'{label} must be an integer or empty (automatic), not "{text}".')
+
+def open_in_system(path):
+    if sys.platform.startswith('win'):
+        os.startfile(path)
+    else:
+        import subprocess
+        subprocess.Popen(['open' if sys.platform == 'darwin' else 'xdg-open', path])
+
 #%% Output generation
 
 
@@ -304,6 +327,7 @@ except:
     SOC_FLAG = False
 
 from _OUT import *
+from _SUMMARY import describe_export, summary_text
 
 
 #%% TKINTER WINDOW 
@@ -692,9 +716,9 @@ class toplevel_pull():
         self.frame_z.pack(pady = 50, fill = 'x')
         
         h = 2
-        self.label_dz = Label(self.frame_z,  text = 'dz =', font = ('Arial', 14))
+        self.label_dz = Label(self.frame_z,  text = 'gap step dz (A) =', font = ('Arial', 14))
         self.text_dz = Text(self.frame_z, width = 60, height = h, font=('consolas', 14))
-        self.label_nz = Label(self.frame_z,  text = '  nz =', font = ('Arial', 14))
+        self.label_nz = Label(self.frame_z,  text = '  configurations nz =', font = ('Arial', 14))
         self.text_nz = Text(self.frame_z, width = 24, height = h, font=('consolas', 14))
 
 
@@ -713,10 +737,16 @@ class toplevel_pull():
         
         self.label_both = Label(self.frame_chk,  text = 'Both electrodes', font = ('Arial', 14))
         self.flag_both = BooleanVar()
-        self.check_both = Checkbutton(self.frame_chk, text='', variable = self.flag_both, onvalue = True, offvalue = False)
+        self.check_both = Checkbutton(self.frame_chk, text='', variable = self.flag_both, onvalue = True, offvalue = False,
+                                      command = self.preview)
 
         self.label_both.pack(side = 'left', expand=True)
         self.check_both.pack(side = 'left', expand=True)
+
+        self.label_preview = Label(self.window, text = '', font = ('Arial', 12))
+        self.label_preview.pack(side = 'top', fill = 'x')
+        for entry in (self.text_dz, self.text_nz):
+            entry.bind('<KeyRelease>', lambda _: self.preview())
 
         #Frame for ok btn
         self.frame_btn = Frame(self.window)
@@ -725,9 +755,20 @@ class toplevel_pull():
 
         self.ok_btn = Button(self.frame_btn,  text = 'Ok', command = self.ok )
         self.ok_btn.pack(side = 'left', expand = True)
-        
+
         self.data_returner = data_returner
-        
+        self.preview()
+
+    def preview(self):
+        try:
+            dz, nz = float(self.text_dz.get()), int(self.text_nz.get())
+        except ValueError:
+            self.label_preview.configure(text = 'dz must be a number and nz an integer')
+            return
+        moves = f'top +{dz/2:g} A, bottom -{dz/2:g} A' if self.flag_both.get() else f'top +{dz:g} A'
+        self.label_preview.configure(text = f'{nz} configurations; per step the gap grows {dz:g} A ({moves});'
+                                            f' total {dz*(nz-1):g} A')
+
     def ok(self):
         self.data_returner(float(self.text_dz.get()), int(self.text_nz.get()), self.flag_both.get())
         self.window.destroy()
@@ -750,7 +791,7 @@ class toplevel_rotate():
         self.text_from = Text(self.frame_rot, width = 60, height = h, font=('consolas', 14))
         self.label_to = Label(self.frame_rot,  text = '  to ', font = ('Arial', 14))
         self.text_to = Text(self.frame_rot, width = 24, height = h, font=('consolas', 14))
-        self.label_by = Label(self.frame_rot,  text = '  by', font = ('Arial', 14))
+        self.label_by = Label(self.frame_rot,  text = '  step (deg)', font = ('Arial', 14))
         self.text_by = Text(self.frame_rot, width = 24, height = h, font=('consolas', 14))
 
 
@@ -764,6 +805,12 @@ class toplevel_rotate():
         self.text_from.insert(END, str(0))
         self.text_to.insert(END, str(90))
         self.text_by.insert(END, str(15))
+
+        self.label_preview = Label(self.window, text = '', font = ('Arial', 12))
+        self.label_preview.pack(side = 'top', fill = 'x')
+        for entry in (self.text_from, self.text_to, self.text_by):
+            entry.bind('<KeyRelease>', lambda _: self.preview())
+        self.preview()
 
         #Frame for checkbutton
         self.frame_chk_top = Frame(self.window)
@@ -808,11 +855,97 @@ class toplevel_rotate():
         
         self.data_returner = data_returner
         
+    def preview(self):
+        try:
+            angles = rotation_angles(float(self.text_from.get()), float(self.text_to.get()), float(self.text_by.get()))
+        except ValueError as e:
+            self.label_preview.configure(text = str(e).replace('Rotation Assistant: ', ''))
+            return
+        shown = ', '.join(f'{a:g}' for a in angles[:8]) + (', ...' if len(angles) > 8 else '')
+        self.label_preview.configure(text = f'{len(angles)} configurations: {shown} deg (from the current orientation)')
+
     def ok(self):
         self.data_returner(float(self.text_from.get()), float(self.text_to.get()), float(self.text_by.get()),
                            self.flag_top.get(), self.flag_mol.get(), self.flag_bottom.get(), self.flag_SOC.get())
         self.window.destroy()
         return
+
+
+class toplevel_summary():
+    '''Shows what an export will write; Generate writes it, Cancel writes nothing.'''
+
+    def __init__(self, text, on_generate):
+        self.window = Toplevel()
+        self.window.geometry('760x560')
+        self.window.title('Export summary')
+        self.on_generate = on_generate
+
+        self.textbox = Textbox(self.window, font = ('consolas', 12), wrap = 'word')
+        self.textbox.pack(side = 'top', expand = True, fill = 'both', padx = 8, pady = 8)
+        self.textbox.insert('0.0', text)
+        self.textbox.tag_config('warning', foreground = '#d03030')
+        for i, line in enumerate(text.split('\n'), start = 1):
+            if line.startswith('  !'):
+                self.textbox.tag_add('warning', f'{i}.0', f'{i}.end')
+        self.textbox.configure(state = 'disabled')
+
+        self.frame_btn = Frame(self.window)
+        self.frame_btn.pack(side = 'bottom', fill = 'x', pady = 8)
+        self.generate_btn = Button(self.frame_btn, text = 'Generate', command = self.generate)
+        self.generate_btn.pack(side = 'left', expand = True)
+        self.cancel_btn = Button(self.frame_btn, text = 'Cancel', command = self.close)
+        self.cancel_btn.pack(side = 'left', expand = True)
+        self.grab_job = self.window.after(100, self.window.grab_set)   # modal: the junction cannot change meanwhile
+
+    def close(self):
+        self.window.after_cancel(self.grab_job)
+        self.window.destroy()
+
+    def generate(self):
+        self.close()
+        return self.on_generate()
+
+
+class toplevel_site_config():
+    '''Read-only view of USER_CONF.txt as ANT.UI understood it, with a reload button.'''
+
+    def __init__(self):
+        self.window = Toplevel()
+        self.window.geometry('700x520')
+        self.window.title('Site configuration (USER_CONF.txt)')
+
+        self.textbox = Textbox(self.window, font = ('consolas', 12), wrap = 'word')
+        self.textbox.pack(side = 'top', expand = True, fill = 'both', padx = 8, pady = 8)
+
+        self.frame_btn = Frame(self.window)
+        self.frame_btn.pack(side = 'bottom', fill = 'x', pady = 8)
+        Button(self.frame_btn, text = 'Open USER_CONF.txt', command = lambda: open_in_system(os.path.abspath('USER_CONF.txt'))).pack(side = 'left', expand = True)
+        Button(self.frame_btn, text = 'Reload', command = self.reload).pack(side = 'left', expand = True)
+        Button(self.frame_btn, text = 'Close', command = self.window.destroy).pack(side = 'left', expand = True)
+        self.show()
+
+    def show(self):
+        lines = [f'File: {os.path.abspath("USER_CONF.txt")}', '']
+        for key, value in UserInfo.items():
+            value = str(value).rstrip('\n')
+            if '\n' in value:
+                lines += [f'{key}:'] + [f'    {l}' for l in value.split('\n')]
+            else:
+                lines.append(f'{key}: {value}')
+        warnings = site_config_warnings()
+        lines += [''] + ([f'  ! {w}' for w in warnings] if warnings else ['No problems found.'])
+        self.textbox.configure(state = 'normal')
+        self.textbox.delete('0.0', 'end')
+        self.textbox.insert('0.0', '\n'.join(lines))
+        self.textbox.tag_config('warning', foreground = '#d03030')
+        for i, line in enumerate(lines, start = 1):
+            if line.startswith('  !'):
+                self.textbox.tag_add('warning', f'{i}.0', f'{i}.end')
+        self.textbox.configure(state = 'disabled')
+
+    def reload(self):
+        load_user_conf()
+        self.show()
 
 
 class tkinter_window():
@@ -940,9 +1073,20 @@ class tkinter_window():
         self.check_U.pack(side = 'left', expand=True)
 
         self.EABS = BooleanVar()
-        self.check_EABS = Checkbutton(self.frame_DFT_opts, text = 'Abs. Energy', variable = self.EABS, 
+        self.check_EABS = Checkbutton(self.frame_DFT_opts, text = 'Abs. Energy', variable = self.EABS,
                                    onvalue = True, offvalue = False, command=self.upt_dft_chk,)
         self.check_EABS.pack(side = 'left', expand=True)
+
+        # Charge and multiplicity: empty = automatic, from the electron count after ECP cores
+        self.frame_spin = Frame(root)
+        self.frame_spin.pack(side = 'top', fill = 'x', pady = 4)
+        Label(self.frame_spin, text = 'Charge', font = ('Arial', 12)).pack(side = 'left', expand = True)
+        self.entry_charge = Text(self.frame_spin, width = 60, placeholder_text = 'auto')
+        self.entry_charge.pack(side = 'left', expand = True)
+        Label(self.frame_spin, text = 'Multiplicity', font = ('Arial', 12)).pack(side = 'left', expand = True)
+        self.entry_mult = Text(self.frame_spin, width = 60, placeholder_text = 'auto')
+        self.entry_mult.pack(side = 'left', expand = True)
+        Label(self.frame_spin, text = '(empty = automatic)', font = ('Arial', 11)).pack(side = 'left', expand = True)
 
         #Frame with the buttons for assintant tools
         self.frame_assis = Frame(root)
@@ -978,36 +1122,82 @@ class tkinter_window():
         self.status = Label(root, text = '', font = ('Arial', 12))
         self.status.pack(side = 'bottom', fill = 'x')
 
-        
-        
-    def export(self, create, *args):
-        '''Make Outputs/<molecule>-NNNN, run one generator into it and check the result.
-        On any error the half-written folder is removed and the error is shown.'''
-        base = self.molecule.name.replace(' ', '_')
-        name = next_output_name(base)
-        Dir = 'Outputs/'+name
+        #Frame for the output folder, site configuration and summary switch
+        self.output_root = UserInfo['OUTPUTDIR']
+        self.frame_output = Frame(root)
+        self.frame_output.pack(side = 'bottom', fill = 'x', pady = 6)
+        Label(self.frame_output, text = 'Output folder:', font = ('Arial', 12)).pack(side = 'left', padx = 6)
+        self.label_output = Label(self.frame_output, text = self.output_root, font = ('Arial', 12), anchor = 'w')
+        self.label_output.pack(side = 'left', expand = True, fill = 'x')
+        Button(self.frame_output, text = 'Change...', width = 80, command = self.choose_output_root).pack(side = 'left', padx = 4)
+        Button(self.frame_output, text = 'Site config', width = 80, command = toplevel_site_config).pack(side = 'left', padx = 4)
+        self.confirm_export = BooleanVar(value = True)
+        Checkbutton(self.frame_output, text = 'Summary first', variable = self.confirm_export,
+                    onvalue = True, offvalue = False).pack(side = 'left', padx = 4)
+        self.summary_window = None
+
+    def choose_output_root(self):
+        from tkinter import filedialog
+        folder = filedialog.askdirectory(initialdir = os.path.abspath(self.output_root), title = 'Folder for new calculations')
+        if folder:
+            self.set_output_root(folder)
+
+    def set_output_root(self, folder):
+        self.output_root = folder
+        self.label_output.configure(text = folder)
+
+    def read_charge_fields(self):
+        self.DFT_opts['Charge'] = optional_int(self.entry_charge.get(), 'Charge')
+        self.DFT_opts['Multiplicity'] = optional_int(self.entry_mult.get(), 'Multiplicity')
+        if self.DFT_opts['Multiplicity'] is not None and self.DFT_opts['Multiplicity'] < 1:
+            raise ValueError('Multiplicity must be 1 or larger.')
+
+    def export(self, create, *args, kind, params = None):
+        '''Describe the export, show the summary (if enabled) and write it to <output folder>/<molecule>-NNNN.'''
+        self.read_charge_fields()
+        objs = [self.down_electrode, self.molecule, self.up_electrode]
+        if kind == 'xyz':
+            lines, warnings = describe_export(objs, 'xyz')
+        else:
+            lines, warnings = describe_export(objs, kind, self.opt_data, self.DFT_opts, params)
+        write = lambda: self.write_export(create, args, lines, warnings)
+        if self.confirm_export.get():
+            preview = summary_text(lines, warnings, f'{self.output_root}/{self.molecule.name.replace(" ", "_")}-NNNN', f'v{__version__}')
+            self.summary_window = toplevel_summary(preview, write)
+            return None
+        return write()
+
+    def write_export(self, create, args, lines, warnings):
+        '''Run one generator into a new folder and check the result. On any error the half-written
+        folder is removed and the error is shown.'''
+        os.makedirs(self.output_root, exist_ok = True)
+        name = next_output_name(self.molecule.name.replace(' ', '_'), self.output_root)
+        Dir = f'{self.output_root}/{name}'
         mkdir(Dir)
         objs = [self.down_electrode, self.molecule, self.up_electrode]
         try:
             create(objs, Dir, name, *args)
             n_steps = verify_output(Dir)
+            with open(f'{Dir}/ANTUI_summary.txt', 'w') as out:
+                out.write(summary_text(lines, warnings, Dir, f'v{__version__}'))
         except Exception:
             shutil.rmtree(Dir, ignore_errors = True)
             raise
-        self.status.configure(text = f'Created {Dir}' + (f' ({n_steps} configurations)' if n_steps else ''))
+        self.status.configure(text = f'Created {Dir}' + (f' ({n_steps} configurations)' if n_steps else '')
+                                     + (f' - {len(warnings)} warning(s), see ANTUI_summary.txt' if warnings else ''))
         return Dir
 
     def create_xyz(self):
-        return self.export(Create_xyz_output)
-    
+        return self.export(Create_xyz_output, kind = 'xyz')
+
     def create_ant(self):
-        return self.export(Create_output, self.opt_data, self.DFT_opts)
-        
+        return self.export(Create_output, self.opt_data, self.DFT_opts, kind = 'ANT')
+
     def create_reax(self):
-        return self.export(Create_reax_output)
+        return self.export(Create_reax_output, kind = 'xyz')
 
     def create_soc(self):
-        return self.export(Create_output_soc, self.opt_data, self.DFT_opts)
+        return self.export(Create_output_soc, self.opt_data, self.DFT_opts, kind = 'SOC')
     
     def update_opt_options(self, opt_data):
         self.opt_data = opt_data
@@ -1023,25 +1213,25 @@ class tkinter_window():
         tpg.update()
 
     def create_grid_dft(self, grid):
-        return self.export(Create_grid_output, grid, self.opt_data, self.DFT_opts)
-        
+        return self.export(Create_grid_output, grid, self.opt_data, self.DFT_opts, kind = 'grid', params = {'grid': grid})
+
     def pull_toplevel(self):
         toplevel_pull(self.create_pull_dft)
 
     def create_pull_dft(self, dz, nz, both):
         if nz < 1 or dz == 0:
             raise ValueError('Pull Assistant: nz must be at least 1 and dz must not be 0.')
-        return self.export(Create_pull_output, dz, nz, both, self.opt_data, self.DFT_opts)
-    
+        return self.export(Create_pull_output, dz, nz, both, self.opt_data, self.DFT_opts,
+                           kind = 'pull', params = {'dz': dz, 'nz': nz, 'both': both})
+
     def rotate_toplevel(self):
         toplevel_rotate(self.create_rot_dft)
 
     def create_rot_dft(self, frm, to, by, top, mol, bottom, SOC):
-        if by == 0 or (to-frm)*by < 0:
-            raise ValueError('Rotation Assistant: "by" is the angular step; it must be non-zero and point from "from" to "to".')
-        angles = frm + by*np.arange(int(round((to-frm)/by))+1)   # both ends included
+        angles = rotation_angles(frm, to, by)
         boolean_data = (bottom, mol, top)
-        return self.export(Create_rot_output, angles, boolean_data, SOC, self.opt_data, self.DFT_opts)
+        return self.export(Create_rot_output, angles, boolean_data, SOC, self.opt_data, self.DFT_opts,
+                           kind = 'rotation', params = {'angles': angles, 'components': boolean_data, 'soc': SOC})
     
     def upt_dft_chk(self): self.update_DFT(None)
     def update_DFT(self, _):
@@ -1126,7 +1316,7 @@ def main():
 
     root = customtkinter.CTk()
     root.title(f'ANT.UI v{__version__}')
-    root.geometry('720x720')
+    root.geometry('720x800')
     root.report_callback_exception = show_error
 
     a = tkinter_window()
