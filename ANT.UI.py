@@ -170,8 +170,8 @@ class xyz_object():
         with open(route) as text: #Leemos la molecula
             self.N = int(text.readline())
             temp = text.readline()
-            if self.mol_flag and temp != '\n' and not ('PureMetalic' in self.name):
-                [self.U.update(y) for y in [{x.split()[0]:x.split()[1]} for x in temp.split('|')]]
+            if self.mol_flag and not ('PureMetalic' in self.name):
+                self.U = parse_u_line(temp)
             self.poss = np.zeros((self.N, 3))
             self.elements = np.zeros((self.N), dtype = '<U2')
             line = text.readline()
@@ -1119,6 +1119,9 @@ class tkinter_window():
             self.soc_btn = Button(self.frame_btn,  text = 'SOC ANT', command = self.create_soc)
             self.soc_btn.pack(side = 'left', expand = True)
 
+        self.u_btn = Button(self.frame_btn,  text = 'Get U', command = self.get_u)
+        self.u_btn.pack(side = 'left', expand = True)
+
         self.status = Label(root, text = '', font = ('Arial', 12))
         self.status.pack(side = 'bottom', fill = 'x')
 
@@ -1198,6 +1201,9 @@ class tkinter_window():
 
     def create_soc(self):
         return self.export(Create_output_soc, self.opt_data, self.DFT_opts, kind = 'SOC')
+
+    def get_u(self):
+        return self.export(Create_getU_output, self.DFT_opts, kind = 'getU')
     
     def update_opt_options(self, opt_data):
         self.opt_data = opt_data

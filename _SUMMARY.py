@@ -3,13 +3,13 @@
 import numpy as np
 
 from _DICS import *
-from _DFT import optimization_protocol, charge_multiplicity, count_electrons
+from _DFT import optimization_protocol, charge_multiplicity, count_electrons, gas_states
 from _OUT import assemble
 from _SOC import SOC_PARAMS, SOC_basis, SOC_pseudopot
 
 KIND_TITLES = {'xyz': 'XYZ geometry', 'ANT': 'ANT input', 'SOC': 'ANT input with spin-orbit coupling',
                'pull': 'Pull Assistant sequence', 'grid': 'Grid Assistant sequence',
-               'rotation': 'Rotation Assistant sequence'}
+               'rotation': 'Rotation Assistant sequence', 'getU': 'Hubbard U of the isolated molecule'}
 SEQUENCES = ['pull', 'grid', 'rotation']
 CONTACT_WARNING = 1.0   # Angstrom: closer atoms almost certainly overlap
 
@@ -37,8 +37,33 @@ def ecp_label(text, elem, source):
         return 'none (all-electron basis)'
     return f'{source} ({ecp_core(text, elem)} core electrons)'
 
+def describe_get_u(molecule, DFT_opts):
+    '''Summary of the gas-phase calculations behind a molecular Hubbard U.'''
+    functional = DFT_opts['Functional']
+    route = Functionals[functional]
+    electrons = count_electrons(molecule.elements, np.zeros(molecule.N, dtype = 'bool'))
+    lines = [f'Calculation: {KIND_TITLES["getU"]}',
+             f'Molecule: {molecule.name} ({formula(molecule.elements)}, {molecule.N} atoms),'
+             f' coordinates as in Molecules/{molecule.name}.xyz',
+             f'Functional: {functional} (Gaussian route {route}); basis lanl2dz, ECP lanl2dz',
+             f'Electrons after ECP cores: {electrons}']
+    names = {'N': 'neutral, N electrons', 'cation': 'cation, N-1', 'anion': 'anion, N+1'}
+    for tag, charge, mult, shell in gas_states(electrons, DFT_opts):
+        lines.append(f'  {molecule.name}_{tag}.gjf: {names[tag]}; charge {charge}, multiplicity {mult} ({shell}{route})')
+    lines += ['U = (IP - EA) - (e_LUMO - e_HOMO): the gas-phase correction that ANT splits as -U/2 on occupied'
+              ' and +U/2 on empty molecular levels.',
+              f'Get_U.py writes U.{molecule.name}.dat and {molecule.name}.xyz with "{functional} U" in its comment line;'
+              ' copy that file to Molecules/ to use it.']
+    if functional in molecule.U:
+        lines.append(f'  The molecule file already has U = {molecule.U[functional]} eV for {functional}; the new file replaces it.')
+    lines.append(f"In the junction ANT uses UPLUS = U x U_ELECTRON_SCREENING (now {UserInfo['U_ELECTRON_SCREENING']}),"
+                 ' which the researcher chooses for the molecule and contact geometry.')
+    return lines, site_config_warnings()
+
 def describe_export(objs, kind, opt_data = None, DFT_opts = None, params = None):
     '''Return (lines, warnings) describing what an export of this kind will write.'''
+    if kind == 'getU':
+        return describe_get_u(objs[1], DFT_opts)
     params = params or {}
     lines, warnings = [], []
     bottom, molecule, top = objs

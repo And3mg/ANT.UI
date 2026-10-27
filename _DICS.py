@@ -92,6 +92,19 @@ Functionals = {
 }
 Shell = {'Close Shell': 'r', 'Open Shell': 'u'}
 
+def parse_u_line(comment):
+    '''Hubbard U per functional from a molecule's XYZ comment line, "PBE 5.89|HSE06 4.10".
+    Anything that is not a known functional followed by a number is ignored.'''
+    U = {}
+    for pair in comment.split('|'):
+        parts = pair.split()
+        if len(parts) == 2 and parts[0] in Functionals:
+            try:
+                U[parts[0]] = str(float(parts[1]))
+            except ValueError:
+                pass
+    return U
+
 
 SOC_metals = {'Au': True, 'Pt': True, 'Cu': True, 'Ag': True, 'Al': True, 'Ni': False}
 
@@ -200,7 +213,7 @@ def load_user_conf(route = 'USER_CONF.txt'):
 def site_config_warnings():
     warnings = []
     if any(p in UserInfo['JOBHEAD'] for p in JOBHEAD_PLACEHOLDERS) or not UserInfo['JOBHEAD'].strip():
-        warnings.append('JOBHEAD in USER_CONF.txt is still the placeholder: launchANT.sh will not have your cluster job header.')
+        warnings.append('JOBHEAD in USER_CONF.txt is still the placeholder: the launch scripts will not have your cluster job header.')
     if not UserInfo['ANTDIRcall']:
         warnings.append('ANTDIRcall in USER_CONF.txt is empty: Gaussian will not find the ANT links (L502/L101).')
     return warnings

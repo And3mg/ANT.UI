@@ -19,4 +19,4 @@ Rotation: 7 configurations at 0, 15, 30, 45, 60, 75, 90 degrees about z, relativ
 Site configuration (USER_CONF.txt): Gaussian call 'g09', Python call 'python', ANT links '../ANT.Gaussian-master2.8.0/bin'
 
 Warnings:
-  ! JOBHEAD in USER_CONF.txt is still the placeholder: launchANT.sh will not have your cluster job header.
+  ! JOBHEAD in USER_CONF.txt is still the placeholder: the launch scripts will not have your cluster job header.

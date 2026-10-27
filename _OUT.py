@@ -123,6 +123,27 @@ def Create_xyz_output(objs, Dir, name):
     create_xyz(Dir, name, Poss, Elem, len(Elem))
     return
 
+def molecule_file_atoms(molecule):
+    '''Atom lines of the molecule exactly as in its file (not centred, not rotated).'''
+    with open(f'Molecules/{molecule.name}.xyz') as text:
+        lines = text.read().split('\n')
+    return '\n'.join(lines[2:2+molecule.N]) + '\n'
+
+def Create_getU_output(objs, Dir, name, DFT_opts):
+    '''Gaussian single points of the isolated molecule with N, N-1 and N+1 electrons, and Get_U.py,
+    which turns them into U and writes the molecule file with the U of this functional added.'''
+    molecule = objs[1]
+    Elem = molecule.elements
+    atom_lines = molecule_file_atoms(molecule)
+    electrons = count_electrons(Elem, np.zeros(len(Elem), dtype = 'bool'))
+    logs = {}
+    for tag, charge, mult, shell in gas_states(electrons, DFT_opts):
+        create_gjf_gas(f'{molecule.name}_{tag}', Dir, Elem, atom_lines, charge, mult, shell, DFT_opts)
+        logs[tag] = f'{molecule.name}_{tag}.log'
+    create_launch_get_u(Dir, [x[:-4] for x in logs.values()])
+    create_python_get_u(Dir, molecule.name, DFT_opts['Functional'], logs, dict(molecule.U), atom_lines)
+    return
+
 def Create_output_soc(objs, Dir, name, opt_data, DFT_opts): #Crear SOC dft
     begin_export()
     Poss, Elem, Semi_infinite_layer, Extremes, z_order, counts = assemble(objs)

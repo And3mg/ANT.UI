@@ -25,6 +25,8 @@ calculations should be regenerated.
 - The bottom electrode differed after re-selecting it; the orientation depended on the order in which the sliders
   were moved; output folder numbers could collide after a deletion; settings leaked between exports.
 - The program can be started from any folder.
+- Molecule comment lines: only "FUNCTIONAL U" pairs are read; other text (e.g. leftover `Energy:` lines in
+  Benzene, Toluene and Cyclohexane, now removed) is ignored.
 
 ### Added
 - Pre-export summary of the scientific setup (atoms per region, contacts, electrons, charge and multiplicity, basis
@@ -38,6 +40,9 @@ calculations should be regenerated.
 - Automated test suite (`python -m pytest`) and GitHub Actions on Windows and Linux, numpy 1.x and 2.x.
 - Worked examples (`Examples/`) and a revised user manual.
 - `ANT.UI.bat` launcher for Windows.
+- Get U button: Gaussian single points of the isolated molecule with N, N-1 and N+1 electrons and a `Get_U.py`
+  script that computes U = (IP - EA) - (e_LUMO - e_HOMO) and writes the molecule file with the U of the chosen
+  functional in its comment line.
 
 ## 1.0.0 (2026)
 
