@@ -49,6 +49,18 @@ def test_soc_input_is_complete(junction, outdir, opt_data, dft_opts, bottom, top
     assert spin_consistent(g)
 
 
+def test_soc_factors_reach_every_active_electrode_atom(junction, outdir, opt_data, dft_opts):
+    """The 2026 recalibration: each active atom gets its own metal's factors, the Bethe region none."""
+    objs = junction(bottom='Au', top='Pt')
+    d, name = outdir()
+    _OUT.Create_output_soc(objs, d, name, opt_data(), dft_opts())
+    lines = open(f'{d}/input{name}.ant').read().split('SOCFACATOM')[1].split('\n')
+    n = int(lines[1])
+    factors = [l.split(',', 1)[1].split() for l in lines[2:2 + n]]
+    assert n == len(factors) and n > 0
+    assert {' '.join(f) for f in factors} == {'201.3, 43.2, 12.6, 2.0', '229.4, 41.6, 9.3, 2.0'}
+
+
 def test_soc_with_optimisation_writes_valid_connector(junction, outdir, opt_data, dft_opts):
     d, name = outdir()
     _OUT.Create_output_soc(junction(), d, name, opt_data(Molecule='all'), dft_opts())
