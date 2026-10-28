@@ -28,6 +28,12 @@ calculations should be regenerated.
 - Molecule comment lines: only "FUNCTIONAL U" pairs are read; other text (e.g. leftover `Energy:` lines in
   Benzene, Toluene and Cyclohexane, now removed) is ignored.
 
+### Changed
+- SOC factors of Au, Pt and Ag recalibrated against two-component CRYSTAL23 bands computed with the same basis
+  sets (band error 3–10 meV). The previous fit counted part of the SOC twice and gave factors that were too small.
+  RCUT is now 2.0 bohr for all three. Al and Cu keep 1, 1, 0. `SOC_params/antg-basis-sets-and-socfacs.pdf`
+  documents the method and every element.
+
 ### Added
 - Pre-export summary of the scientific setup (atoms per region, contacts, electrons, charge and multiplicity, basis
   set and pseudopotential per element and region, SOC, DFT+U, constraints, sequence settings, warnings), shown
