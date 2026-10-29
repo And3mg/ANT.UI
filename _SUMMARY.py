@@ -37,6 +37,19 @@ def ecp_label(text, elem, source):
         return 'none (all-electron basis)'
     return f'{source} ({ecp_core(text, elem)} core electrons)'
 
+def blpar_order_warnings(bottom, top):
+    '''ANT.Gaussian <= 2.8.2 reads BLPAR2 with the unit and ISPIN left over from BLPAR1 (fixed in builds that reset them).'''
+    (unit1, spin1), (unit2, spin2) = BLPAR_HEADER[bottom], BLPAR_HEADER[top]
+    warnings = []
+    if unit2 is None and unit1 is not None:
+        warnings.append(f'ANT.Gaussian 2.8.2 and earlier read the top-electrode Bethe parameters ({top}, BLPAR2) in the unit of '
+                        f'the bottom ones ({bottom}, {unit1}): the {top} parameters would be halved. Put the {top} electrode at '
+                        f'the bottom, or use an ANT build that resets the unit for each electrode.')
+    if spin2 is None and spin1 == 2:
+        warnings.append(f'ANT.Gaussian 2.8.2 and earlier read the {top} Bethe parameters (BLPAR2) into the spin-2 channel left '
+                        f'over from {bottom}: put the {top} electrode at the bottom, or use an ANT build that resets ISPIN.')
+    return warnings
+
 def describe_get_u(molecule, DFT_opts):
     '''Summary of the gas-phase calculations behind a molecular Hubbard U.'''
     functional = DFT_opts['Functional']
@@ -128,6 +141,7 @@ def describe_export(objs, kind, opt_data = None, DFT_opts = None, params = None)
             lines.append(f'  {met} Bethe anchor ({n_anchor} atoms): {DFT_min_basis_source[met]};'
                          f' ECP {ecp_label(DFT_min_pseudopotentials[met], met, "same file")}')
     lines.append(f'  Bethe lattice parameters: BLPAR1 = {BLPAR[Elem[0]]}, BLPAR2 = {BLPAR[Elem[-1]]}')
+    warnings += blpar_order_warnings(Elem[0], Elem[-1])
 
     if soc:
         n_soc = int(np.sum([(e in Electrode_elem) and not s for e, s in zip(Elem, Semi)]))
