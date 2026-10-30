@@ -109,6 +109,16 @@ def test_every_export_saves_its_summary(window):
     assert 'Calculation: ANT input' in text and f'Destination: {folder}' in text
 
 
+def test_get_u_button_writes_the_gas_phase_inputs(window):
+    window.u_btn.invoke()
+    folder = window.status.cget('text').split('Created ')[1].split(' ')[0]
+    mol = window.molecule.name
+    assert sorted(f for f in os.listdir(folder) if f.endswith('.gjf')) == \
+           sorted(f'{mol}_{tag}.gjf' for tag in ('N', 'anion', 'cation'))
+    assert 'Calculation: Hubbard U of the isolated molecule' in open(f'{folder}/ANTUI_summary.txt').read()
+    assert not window.errors
+
+
 def test_output_folder_can_be_anywhere(window, tmp_path):
     target = (tmp_path / 'my calcs').as_posix()      # with a space, created on demand
     previous = window.output_root

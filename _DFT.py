@@ -335,6 +335,70 @@ def create_python_get_EABS(Dir, name):
         out.write(f"Emol_file = 'input{name}_mol_opt.log' \n")
         out.write(main)
 
+#Gas-phase inputs for the molecular Hubbard U
+U_STATES = [('N', 0), ('cation', 1), ('anion', -1)]   # N, N-1 and N+1 electrons
+
+def gas_states(electrons, DFT_opts):
+    '''(tag, charge, multiplicity, r/u) of the neutral molecule, its cation and its anion.'''
+    states = []
+    for tag, charge in U_STATES:
+        mult = 1 if (electrons - charge) % 2 == 0 else 2
+        shell = 'u' if mult > 1 or DFT_opts['Shell'] == 'Open Shell' else 'r'
+        states.append((tag, charge, mult, shell))
+    return states
+
+def create_gjf_gas(name, Dir, Elem, atom_lines, charge, mult, shell, DFT_opts):
+    '''Single point of the isolated molecule, with the basis and ECP its atoms get in the junction.'''
+    Metals = [x for x in np.unique(Elem) if x in Electrode_elem]
+    Others = [x for x in np.unique(Elem) if x not in Electrode_elem]
+    atoms = {met: [i+1 for i, e in enumerate(Elem) if e == met] for met in Metals}
+    with open(f'{Dir}/{name}.gjf', 'w') as g:
+        g.write(UserInfo['GAUSSIANHEAD'])
+        g.write(f"#p {shell}{Functionals[DFT_opts['Functional']]}/gen pseudo=read pop=min"
+                " Scf=(conver=8,maxcycle=1000,dsymm,nodamp) nosymm \n")
+        g.write('\n')
+        g.write(f'{name}\n')
+        g.write('\n')
+        g.write(f'{charge},{mult} \n')
+        g.write(atom_lines)
+        g.write('\n')
+        for elem in Others:
+            g.write(f'{elem} 0 \n')
+            g.write('lanl2dz \n')
+            g.write('**** \n')
+        for met in Metals:
+            g.write(' '.join(map(str, atoms[met])) + ' \n')
+            g.write(DFT_basis[met].rstrip('\n') + '\n')
+            g.write('**** \n')
+        g.write('\n')
+        for elem in Others:
+            g.write(f'{elem} 0 \n')
+            g.write('lanl2dz \n')
+        for met in Metals:
+            if DFT_pseudopotentials[met].strip():
+                g.write(' '.join(map(str, atoms[met])) + ' \n')
+                g.write(DFT_pseudopotentials[met].rstrip('\n') + '\n')
+        g.write(4*'\n ')
+    return
+
+def create_launch_get_u(Dir, names):
+    with open(Dir+'/launchGaussian.sh', 'w', newline='\n') as h:
+        h.write(UserInfo['JOBHEAD'])
+        for name in names:
+            h.write(f"{UserInfo['G09call']} {name}.gjf \n")
+        h.write(f"{UserInfo['PYTHONcall']} Get_U.py \n")
+    return
+
+def create_python_get_u(Dir, molecule, functional, logs, U_pairs, atom_lines):
+    main = read_template('Get_U.txt')
+    with open(f'{Dir}/Get_U.py', 'w') as out:
+        out.write(f"molecule = {molecule!r} \n")
+        out.write(f"functional = {functional!r} \n")
+        out.write(f"logs = {logs!r} \n")
+        out.write(f"U_pairs = {U_pairs!r} \n")
+        out.write(f"xyz_atoms = {atom_lines!r} \n")
+        out.write(main)
+
 def create_python_OptFirstStep(Dir, name, Folder_name, N_folder, text_func):
     global Flag_opt, Flag_opt_in_ANT
     global p_line

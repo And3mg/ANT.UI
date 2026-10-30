@@ -84,6 +84,9 @@ def main():
            junction('Toluene', -6.7, 3.7, bottom='Block_FCC_[111]_40'), grid, opt, pbe,
            opt=opt, dft=pbe, params={'grid': grid})
 
+    # 5. Get U: PBE single points of isolated glycerol with N, N-1 and N+1 electrons and the Get_U.py analysis
+    export('5_get_u', 'getU', _OUT.Create_getU_output, junction('Glycerol', -2.0, 6.6), pbe, dft=pbe)
+
 
 if __name__ == '__main__':
     main()
