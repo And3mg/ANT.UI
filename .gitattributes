@@ -1,1 +1,5 @@
 *.bat text eol=crlf
+# Files that run on the Linux cluster must keep Unix line endings on every checkout
+*.sh text eol=lf
+Examples/** text eol=lf
+PythonRutines/*.txt text eol=lf
