@@ -40,6 +40,20 @@ def test_mixed_soc_lists_every_ecp(junction, opt_data, dft_opts):
     assert 'Au SOC parameters' in text and 'Cu SOC parameters' in text
 
 
+@pytest.mark.parametrize('bottom,top,flagged', [('Pt', 'Au', 'halved'), ('Cu', 'Au', 'halved'), ('Au', 'Pt', None),
+                                                ('Au', 'Au', None), ('Ni', 'Pt', 'spin-2'), ('Pt', 'Ni', None)])
+def test_mixed_electrode_order_is_flagged(junction, opt_data, dft_opts, bottom, top, flagged):
+    """ANT <= 2.8.2 keeps BLPAR1's unit and ISPIN for BLPAR2 (Pt-then-Au halves every Au parameter, job 36145)."""
+    _, warnings = text_of(*describe_export(junction(bottom=bottom, top=top), 'ANT', opt_data(), dft_opts()))
+    assert ('BLPAR2' in warnings) == (flagged is not None)
+    if flagged:
+        assert flagged in warnings
+
+
+def test_every_metal_has_a_bethe_header():
+    assert set(_DICS.BLPAR_HEADER) == set(_DICS.BLPAR)
+
+
 def test_overlapping_parts_are_flagged(junction, opt_data, dft_opts):
     _, warnings = text_of(*describe_export(junction(top_z=2.0), 'ANT', opt_data(), dft_opts()))
     assert 'overlap' in warnings

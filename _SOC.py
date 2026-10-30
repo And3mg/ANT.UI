@@ -5,11 +5,14 @@ from os import listdir
 from _DICS import *
 from _DFT import create_gjf
 
-SOC_PARAMS = {'Au': ['150.0', '35.0',  '5.0',  '2.0'],
-              'Pt': ['280.0',  '40.0',  '10.0',  '2.5'],
-              'Ag': ['80.0',  '10.0',  '5.0',  '2.5'],
-              'Al': ['1.0',  '1.0',  '0.0',  '2.5'],
-              'Cu': ['1.0',  '1.0',  '0.0',  '2.5']}
+# SOCFACATOM factors P, D, F and RCUT (bohr). Au, Pt, Ag: fitted (2026) to two-component CRYSTAL23 bands with the
+# SOC_params basis sets; Al, Cu (all-electron bases) keep 1, 1, 0. Method and per-element fits in
+# SOC_params/antg-basis-sets-and-socfacs.pdf. The factors belong to these basis sets.
+SOC_PARAMS = {'Au': ['201.3', '43.2', '12.6', '2.0'],
+              'Pt': ['229.4', '41.6',  '9.3', '2.0'],
+              'Ag': ['49.1',   '8.9',  '0.1', '2.0'],
+              'Al': ['1.0',    '1.0',  '0.0', '2.5'],
+              'Cu': ['1.0',    '1.0',  '0.0', '2.5']}
 SOC_basis = {}
 SOC_pseudopot = {}
 

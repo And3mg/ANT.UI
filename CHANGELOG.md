@@ -28,6 +28,12 @@ calculations should be regenerated.
 - Molecule comment lines: only "FUNCTIONAL U" pairs are read; other text (e.g. leftover `Energy:` lines in
   Benzene, Toluene and Cyclohexane, now removed) is ignored.
 
+### Changed
+- SOC factors of Au, Pt and Ag recalibrated against two-component CRYSTAL23 bands computed with the same basis
+  sets (band error 3–10 meV). The previous fit counted part of the SOC twice and gave factors that were too small.
+  RCUT is now 2.0 bohr for all three. Al and Cu keep 1, 1, 0. `SOC_params/antg-basis-sets-and-socfacs.pdf`
+  documents the method and every element.
+
 ### Added
 - Pre-export summary of the scientific setup (atoms per region, contacts, electrons, charge and multiplicity, basis
   set and pseudopotential per element and region, SOC, DFT+U, constraints, sequence settings, warnings), shown
@@ -40,6 +46,9 @@ calculations should be regenerated.
 - Automated test suite (`python -m pytest`) and GitHub Actions on Windows and Linux, numpy 1.x and 2.x.
 - Worked examples (`Examples/`) and a revised user manual.
 - `ANT.UI.bat` launcher for Windows.
+- Warning for mixed-metal junctions that ANT.Gaussian 2.8.2 and earlier read wrongly: the top electrode's
+  Bethe-lattice parameters inherit the energy unit (and ISPIN) of the bottom ones, so for example a Pt bottom and an
+  Au top halve every Au parameter. Swap the electrodes or use an ANT build with the fix.
 - Get U button: Gaussian single points of the isolated molecule with N, N-1 and N+1 electrons and a `Get_U.py`
   script that computes U = (IP - EA) - (e_LUMO - e_HOMO) and writes the molecule file with the U of the chosen
   functional in its comment line.
