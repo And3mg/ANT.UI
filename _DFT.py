@@ -195,6 +195,22 @@ def opt_gjf(Poss, Elem, Opt_resume, Opt_data, DFT_opts):
     bethe_layers = bethe_layer_offsets(layers)
     return P_line, Poss_lines, Variable_lines
 
+def count_electrons(Elem, Semi, active_ecp = None):
+    '''Electrons of the neutral system once the ECP cores are removed: lanl2dz for molecule atoms,
+    the minimal-basis ECP for Bethe anchor atoms (Semi), active_ecp for the other electrode atoms.'''
+    if active_ecp is None:
+        active_ecp = DFT_pseudopotentials
+    electrons = 0
+    for i, e in enumerate(Elem):
+        if e not in Electrode_elem:
+            core = lanl2dz_core(e)
+        elif Semi[i]:
+            core = ecp_core(DFT_min_pseudopotentials[e], e)
+        else:
+            core = ecp_core(active_ecp.get(e, ''), e)
+        electrons += atomic_number[e] - core
+    return electrons
+
 def charge_multiplicity(electrons, DFT_opts):
     '''Auto: closed shell removes one electron from an odd count (charge +1, singlet);
     open shell keeps the system neutral (doublet if odd). DFT_opts Charge/Multiplicity override.'''
@@ -224,16 +240,7 @@ def create_gjf(name, Dir, Poss, Elem, Semi, Opt_resume, Opt_data, DFT_opts, acti
     active = {met: [i+1 for i, e in enumerate(Elem) if e == met and not Semi[i]] for met in Metals}
     anchor = {met: [i+1 for i, e in enumerate(Elem) if e == met and Semi[i]] for met in Metals}
 
-    electrons = 0
-    for i, e in enumerate(Elem):
-        if e not in Electrode_elem:
-            core = lanl2dz_core(e)
-        elif Semi[i]:
-            core = ecp_core(DFT_min_pseudopotentials[e], e)
-        else:
-            core = ecp_core(active_ecp.get(e, ''), e)
-        electrons += atomic_number[e] - core
-    charge, mult = charge_multiplicity(electrons, DFT_opts)
+    charge, mult = charge_multiplicity(count_electrons(Elem, Semi, active_ecp), DFT_opts)
 
     with open(f'{Dir}/input{name}.gjf', "w") as g:
         g.write(UserInfo['GAUSSIANHEAD'])
