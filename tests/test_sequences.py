@@ -12,7 +12,6 @@ import pytest
 
 import _OUT
 from antui_testlib import Gjf, fake_gaussian_log, python_syntax_error, run_link_opt
-from conftest import known_bug
 
 NUMPY2 = int(np.__version__.split('.')[0]) >= 2
 CHAINS = ['none', 'first step', 'every step']
@@ -44,19 +43,12 @@ ROT = [dict(frm=10, to=70, by=20), dict(frm=0, to=45, by=15)]
 
 
 def _case(kind, chains, kw):
-    marks = []
-    if kind == 'pull' and chains == 'first step':
-        marks.append(known_bug('R01', 'len(nz) on an int / unquoted Next_folder'))
-    elif kind == 'pull' and kw['dz'] == 0.1 and kw['both']:
-        marks.append(known_bug('R08', 'np.arange(0, dz*nz/2, dz/2) returns nz+1 points'))
-    if kind == 'rot' and chains == 'first step':
-        marks.append(known_bug('R06', 'unquoted Next_folder in the rotation connector'))
-    if kind == 'grid' and chains == 'first step':
-        marks.append(known_bug('R07', 'np.float64 reprs in Grid under numpy>=2', condition=NUMPY2))
     label = '-'.join(f'{k}{v}' for k, v in kw.items() if k != 'grid')
-    return pytest.param(kind, chains, kw, marks=marks, id=f'{kind}-{chains.replace(" ", "")}-{label}')
+    return pytest.param(kind, chains, kw, id=f'{kind}-{chains.replace(" ", "")}-{label}')
 
 
+# Regressions guarded here: R01 (pull, first step), R06 (rotation, first step), R07 (grid, first step,
+# numpy>=2), R08 (symmetric pull dz=0.1 nz=3).
 CASES = ([_case('pull', c, kw) for c in CHAINS for kw in PULL] +
          [_case('grid', c, kw) for c in CHAINS for kw in GRID] +
          [_case('rot', c, kw) for c in CHAINS for kw in ROT])
@@ -81,28 +73,26 @@ def test_sequence_is_complete(junction, outdir, opt_data, dft_opts, kind, chains
 
 
 def _prop(kind, chains, kw, *bugs):
-    marks = [known_bug(b, why) for b, why in bugs]
+    """bugs: the regressions this case guards (see PaperRevision plan / PR history)."""
     label = '-'.join(f'{k}{v}' for k, v in kw.items() if k not in ('grid', 'mol_xy'))
     if 'mol_xy' in kw:
         label += '-offcentre'
-    return pytest.param(kind, chains, kw, marks=marks, id=f'{kind}-{chains.replace(" ", "")}-{label}')
+    return pytest.param(kind, chains, kw, id=f'{kind}-{chains.replace(" ", "")}-{label}')
 
 
-X1 = ('X1', 'Main_OptFirstStep moves at I=0 too (one extra increment); Move_pull halves dz on every call')
-X13 = ('X13', 'Move_rot rotates clockwise (R@x) while the GUI rotates counter-clockwise (x@R)')
-X14 = ('X14', 'Move_rot rotates about the z axis through the origin, not about the molecule centre')
-X15 = ('X15', 'USER_CONF comment "%mem=4gb  #Modify..." is copied into the .gjf; read_opt_gjf takes it for the route line')
-X16 = ('X16', 'every-step Move_grid applies Grid[I]-Grid[I-1] with I = current folder: scan lags one point')
+# X1: first-step chains moved one extra increment; symmetric pulls halved dz at every step.
+# X13: optimised rotation chains turned clockwise.  X14: they rotated about the origin.
+# X15: USER_CONF comments broke the route line of the generated inputs.  X16: every-step grids lagged one point.
 PROPAGATION = [
-    _prop('pull', 'first step', dict(dz=0.5, nz=4, both=False), ('R01', 'generator crashes'), X1),
-    _prop('pull', 'first step', dict(dz=0.5, nz=4, both=True), ('R01', 'generator crashes'), X1),
-    _prop('pull', 'every step', dict(dz=0.5, nz=4, both=False), X15),
-    _prop('pull', 'every step', dict(dz=0.5, nz=4, both=True), X15),
-    _prop('grid', 'first step', GRID[0], *([('R07', 'numpy>=2 reprs')] if NUMPY2 else [])),
-    _prop('grid', 'every step', GRID[0], X15, X16),
-    _prop('rot', 'first step', dict(frm=0, to=45, by=15), ('R06', 'invalid connector'), X1, X13),
-    _prop('rot', 'every step', dict(frm=0, to=45, by=15), X13, X15),
-    _prop('rot', 'every step', dict(frm=0, to=45, by=15, mol_xy=(1.0, 0.5)), X13, X14, X15),
+    _prop('pull', 'first step', dict(dz=0.5, nz=4, both=False), 'R01', 'X1'),
+    _prop('pull', 'first step', dict(dz=0.5, nz=4, both=True), 'R01', 'X1'),
+    _prop('pull', 'every step', dict(dz=0.5, nz=4, both=False), 'X15'),
+    _prop('pull', 'every step', dict(dz=0.5, nz=4, both=True), 'X15'),
+    _prop('grid', 'first step', GRID[0], 'R07'),
+    _prop('grid', 'every step', GRID[0], 'X15', 'X16'),
+    _prop('rot', 'first step', dict(frm=0, to=45, by=15), 'R06', 'X1', 'X13'),
+    _prop('rot', 'every step', dict(frm=0, to=45, by=15), 'X13', 'X15'),
+    _prop('rot', 'every step', dict(frm=0, to=45, by=15, mol_xy=(1.0, 0.5)), 'X13', 'X14', 'X15'),
 ]
 
 

@@ -160,13 +160,19 @@ def spin_consistent(gjf):
 
 
 # --------------------------------------------------------------- fake Gaussian
-def fake_gaussian_log(gjf_path):
-    """Write the .log Gaussian would leave if the optimisation did not move any atom.
+def fake_gaussian_log(gjf_path, shifts=None):
+    """Write the .log Gaussian would leave if the optimisation moved nothing, except that
+    each z-matrix variable named in shifts moves by the given amount.
 
     Only the sections link_opt.py parses are written: the 'Input orientation'
     table and the final 'Optimized Parameters' table of z-matrix variables.
     """
     g = Gjf(gjf_path)
+    for name, delta in (shifts or {}).items():
+        g.variables[name] += delta
+        for k, tokens in enumerate(g.symbols):
+            if tokens[-1] == name:
+                g.coords[k, 2] += delta
     out = [' Input orientation:', ' ' + '-' * 69,
            ' Center     Atomic      Atomic             Coordinates (Angstroms)',
            ' Number     Number       Type             X           Y           Z',

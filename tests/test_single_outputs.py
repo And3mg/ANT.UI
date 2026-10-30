@@ -6,16 +6,13 @@ import pytest
 
 import _OUT
 from antui_testlib import Gjf, basis_ecp_problems, electron_count, python_syntax_error, spin_consistent
-from conftest import known_bug
 
 METALS = ['Au', 'Ag', 'Cu', 'Al', 'Ni', 'Pt']
 
 
 def _ant_case(metal, drop):
-    marks = []
-    if metal in ('Pt', 'Ni') and drop % 2:
-        marks.append(known_bug('X2', 'charge line N_metal%2 assumes an odd electron count per metal atom'))
-    return pytest.param(metal, drop, marks=marks, id=f'{metal}-{40 - drop}atoms')
+    # X2: Pt and Ni have an even electron count per atom with the shipped ECPs
+    return pytest.param(metal, drop, id=f'{metal}-{40 - drop}atoms')
 
 
 @pytest.mark.parametrize('metal,drop', [_ant_case(m, d) for m in METALS for d in (0, 1)])
@@ -34,11 +31,8 @@ def test_ant_input_is_complete(junction, outdir, opt_data, dft_opts, metal, drop
 
 
 def _soc_case(bottom, top):
-    marks = []
-    metals = sorted({bottom, top})
-    if len(metals) > 1 and metals[-1] in ('Cu', 'Al'):
-        marks.append(known_bug('R03', 'ECP presence is tested on the last metal only'))
-    return pytest.param(bottom, top, marks=marks, id=f'{bottom}-{top}')
+    # R03: mixed electrodes lost the active-metal SOC ECP when the last metal had none (Cu, Al)
+    return pytest.param(bottom, top, id=f'{bottom}-{top}')
 
 
 @pytest.mark.parametrize('bottom,top', [_soc_case(*p) for p in
@@ -55,14 +49,12 @@ def test_soc_input_is_complete(junction, outdir, opt_data, dft_opts, bottom, top
     assert spin_consistent(g)
 
 
-@known_bug('R02', 'SOC connector writes unquoted %Subst assignments')
 def test_soc_with_optimisation_writes_valid_connector(junction, outdir, opt_data, dft_opts):
     d, name = outdir()
     _OUT.Create_output_soc(junction(), d, name, opt_data(Molecule='all'), dft_opts())
     assert python_syntax_error(f'{d}/link_opt.py') is None
 
 
-@known_bug('R04', 'second Bethe layer gets one z variable per atom (Extremes passed as Semi)')
 def test_bethe_layers_move_rigidly(junction, outdir, opt_data, dft_opts):
     d, name = outdir()
     _OUT.Create_output(junction(), d, name, opt_data(Top_Bethe='z', Bottom_Bethe='z'), dft_opts())
@@ -82,7 +74,6 @@ def bromobenzene():
     os.remove(path)
 
 
-@known_bug('X3', 'elements outside _DICS.Molecular_atoms are dropped from the .gjf')
 def test_every_molecule_element_is_written(junction, outdir, opt_data, dft_opts, bromobenzene):
     objs = junction(mol=bromobenzene)
     d, name = outdir()
@@ -99,7 +90,6 @@ def test_absolute_energy_scripts_compile(junction, outdir, opt_data, dft_opts):
         assert python_syntax_error(f'{d}/{script}') is None
 
 
-@known_bug('X7', 'Flag_EABS from a previous export leaks into the SOC launcher')
 def test_settings_do_not_leak_between_exports(junction, outdir, opt_data, dft_opts):
     d1, n1 = outdir()
     _OUT.Create_output(junction(), d1, n1, opt_data(Molecule='all'), dft_opts(EABS=True))
@@ -108,7 +98,6 @@ def test_settings_do_not_leak_between_exports(junction, outdir, opt_data, dft_op
     assert 'EABS' not in open(f'{d2}/launchANT.sh').read()
 
 
-@known_bug('X15', 'inline "#" comments from USER_CONF.txt are copied into the Gaussian Link0 section')
 def test_gaussian_header_has_no_config_comments(junction, outdir, opt_data, dft_opts):
     d, name = outdir()
     _OUT.Create_output(junction(), d, name, opt_data(Molecule='all'), dft_opts())

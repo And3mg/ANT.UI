@@ -35,20 +35,19 @@ def junction(antui):
     """Build [bottom, molecule, top] exactly as tkinter_window does at start-up."""
     def build(mol='Benzene', top='Au', bottom='Au', top_z=9.0, electrode='Point_FCC_[111]', drop_top=0):
         up = antui.xyz_object(f'ElectrodesDFT/{electrode}.xyz')
-        down = antui.xyz_object(f'ElectrodesDFT/{electrode}.xyz')
+        down = antui.place_bottom_electrode(antui.xyz_object(f'ElectrodesDFT/{electrode}.xyz'))
         if top != 'Au':
             up.change_elem(top)
         if bottom != 'Au':
             down.change_elem(bottom)
-        down.euler_angles = np.array([0, 180, 60])
-        down.spatial_coords = np.array([0, 0, -11])
         up.spatial_coords = np.array([0., 0., top_z])
         up.euler_angles = np.array([0., 0., 0.])
         for _ in range(drop_top):       # remove the tip apex to change the metal-atom parity
             keep = np.ones(up.N, bool)
             keep[np.argmin(up.poss[:, 2])] = False
-            for attr in ('poss', 'elements', 'semi_infinite_layer', 'extremes', 'neigh_count'):
-                setattr(up, attr, getattr(up, attr)[keep])
+            for attr in ('poss', 'poss0', 'elements', 'semi_infinite_layer', 'extremes', 'neigh_count'):
+                if hasattr(up, attr):
+                    setattr(up, attr, getattr(up, attr)[keep])
             up.N -= 1
         molecule = antui.xyz_object(f'Molecules/{mol}.xyz')
         molecule.euler_angles = np.array([0., 0., 0.])
