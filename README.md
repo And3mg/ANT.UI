@@ -54,7 +54,7 @@ pip install pytest
 python -m pytest
 ```
 
-Run it from the repository root. Tests marked `xfail` document known bugs that are still open.
+Run it from the repository root. The same tests run on every push on Windows and Linux (GitHub Actions).
 
 ---
 
@@ -68,6 +68,7 @@ Run it from the repository root. Tests marked `xfail` document known bugs that a
 | `_DFT.py` | DFT file writers and Python connector scripts |
 | `_SOC.py` | Spin-orbit coupling output generation |
 | `_SUMMARY.py` | Pre-export summary and checks (saved as `ANTUI_summary.txt` with every output) |
+| `CHANGELOG.md` | Changes between versions |
 | `_DICS.py` | Element dictionaries, functional list, user config loader |
 | `Examples/` | Inputs of the manual's worked examples (the three cases of Fig. 2 of the paper) and the script that regenerates them |
 | `tests/` | Automated tests of the generated inputs (`python -m pytest`) |
@@ -91,7 +92,9 @@ A full user manual is available in `ANT.UI_UserManual.pdf` in the repository.
 
 If you use ANT.UI in your research, please cite:
 
-> A. Martinez-Garcia, C. Sabater, *ANT.UI: A versatile molecular junction builder for ANT, Gaussian, and multi-platform atomistic simulations*, SoftwareX (2026). *(DOI to be added upon publication)*
+> A. Martinez-Garcia, J. J. Palacios, C. Sabater, *ANT.UI: An interactive 3D tool for preparing ANT.Gaussian molecular junction geometries*, SoftwareX (2026). *(DOI to be added upon publication)*
+
+The software itself is archived on Zenodo; `CITATION.cff` gives the citation of each release.
 
 ---
 

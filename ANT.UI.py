@@ -31,7 +31,7 @@ import customtkinter
 customtkinter.set_appearance_mode("System")  # Modes: system (default), light, dark
 customtkinter.set_default_color_theme("blue")  # Themes: blue (default), dark-blue, green
 
-__version__ = '1.0.0'
+__version__ = '1.1.0'
 
 class Scale:
 

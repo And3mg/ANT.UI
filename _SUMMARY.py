@@ -141,7 +141,10 @@ def describe_export(objs, kind, opt_data = None, DFT_opts = None, params = None)
         if kind in SEQUENCES and chains != 'none':
             warnings.append(f'Chains is "{chains}" but every region is fixed: nothing will be optimised.')
     if kind in SEQUENCES:
-        lines.append(f'  Chain: {chains}')
+        chain_text = {'first step': ' (only the first folder is relaxed in Gaussian; its link_opt.py writes the inputs'
+                                    ' of the other folders from the relaxed geometry, which are not re-optimised)',
+                      'every step': ' (every folder is relaxed, starting from the relaxed geometry of the previous one)'}
+        lines.append(f'  Chain: {chains}{chain_text.get(chains, "") if (modes != "fix").any() else ""}')
 
     # Sequence settings
     if kind == 'pull':
