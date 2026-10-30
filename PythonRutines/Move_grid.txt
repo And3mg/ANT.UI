@@ -1,6 +1,9 @@
 
 def move(poss, variable_dict):
+    # Move the tip from grid point I-1 to grid point I
     global Nbtm, Nmol, Ntop, Grid, I
+    if I >= len(Grid):
+        return poss, variable_dict
     i = 0
     used = []
     i += Nbtm
