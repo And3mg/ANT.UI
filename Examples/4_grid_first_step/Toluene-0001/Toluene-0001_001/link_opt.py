@@ -1,0 +1,231 @@
+intro = '\n'
+optgjf_path = 'inputToluene-0001_001.gjf' 
+log_file_path = 'inputToluene-0001_001.log' 
+P_line = f'#p rPBEPBE/gen pseudo=read pop=min Scf=(conver=6,maxcycle=1000,dsymm,nodamp) nosymm IOP(3/124=3) {intro}' 
+Bethe_layers = [] 
+Ant1 = f'%Subst L502 ../ANT.Gaussian-master2.8.0/bin {intro}' 
+Ant2 = f'%Subst L101 ../ANT.Gaussian-master2.8.0/bin {intro}' 
+
+N_folder = '100' 
+Folder_name = 'Toluene-0001' 
+Nbtm, Nmol, Ntop = 40, 15, 20 
+Grid = [(-4.0, -4.0), (-4.0, -3.111111111111111), (-4.0, -2.2222222222222223), (-4.0, -1.3333333333333335), (-4.0, -0.44444444444444464), (-4.0, 0.44444444444444464), (-4.0, 1.333333333333333), (-4.0, 2.2222222222222214), (-4.0, 3.1111111111111107), (-4.0, 4.0), (-3.111111111111111, 4.0), (-3.111111111111111, 3.1111111111111107), (-3.111111111111111, 2.2222222222222214), (-3.111111111111111, 1.333333333333333), (-3.111111111111111, 0.44444444444444464), (-3.111111111111111, -0.44444444444444464), (-3.111111111111111, -1.3333333333333335), (-3.111111111111111, -2.2222222222222223), (-3.111111111111111, -3.111111111111111), (-3.111111111111111, -4.0), (-2.2222222222222223, -4.0), (-2.2222222222222223, -3.111111111111111), (-2.2222222222222223, -2.2222222222222223), (-2.2222222222222223, -1.3333333333333335), (-2.2222222222222223, -0.44444444444444464), (-2.2222222222222223, 0.44444444444444464), (-2.2222222222222223, 1.333333333333333), (-2.2222222222222223, 2.2222222222222214), (-2.2222222222222223, 3.1111111111111107), (-2.2222222222222223, 4.0), (-1.3333333333333335, 4.0), (-1.3333333333333335, 3.1111111111111107), (-1.3333333333333335, 2.2222222222222214), (-1.3333333333333335, 1.333333333333333), (-1.3333333333333335, 0.44444444444444464), (-1.3333333333333335, -0.44444444444444464), (-1.3333333333333335, -1.3333333333333335), (-1.3333333333333335, -2.2222222222222223), (-1.3333333333333335, -3.111111111111111), (-1.3333333333333335, -4.0), (-0.44444444444444464, -4.0), (-0.44444444444444464, -3.111111111111111), (-0.44444444444444464, -2.2222222222222223), (-0.44444444444444464, -1.3333333333333335), (-0.44444444444444464, -0.44444444444444464), (-0.44444444444444464, 0.44444444444444464), (-0.44444444444444464, 1.333333333333333), (-0.44444444444444464, 2.2222222222222214), (-0.44444444444444464, 3.1111111111111107), (-0.44444444444444464, 4.0), (0.44444444444444464, 4.0), (0.44444444444444464, 3.1111111111111107), (0.44444444444444464, 2.2222222222222214), (0.44444444444444464, 1.333333333333333), (0.44444444444444464, 0.44444444444444464), (0.44444444444444464, -0.44444444444444464), (0.44444444444444464, -1.3333333333333335), (0.44444444444444464, -2.2222222222222223), (0.44444444444444464, -3.111111111111111), (0.44444444444444464, -4.0), (1.333333333333333, -4.0), (1.333333333333333, -3.111111111111111), (1.333333333333333, -2.2222222222222223), (1.333333333333333, -1.3333333333333335), (1.333333333333333, -0.44444444444444464), (1.333333333333333, 0.44444444444444464), (1.333333333333333, 1.333333333333333), (1.333333333333333, 2.2222222222222214), (1.333333333333333, 3.1111111111111107), (1.333333333333333, 4.0), (2.2222222222222214, 4.0), (2.2222222222222214, 3.1111111111111107), (2.2222222222222214, 2.2222222222222214), (2.2222222222222214, 1.333333333333333), (2.2222222222222214, 0.44444444444444464), (2.2222222222222214, -0.44444444444444464), (2.2222222222222214, -1.3333333333333335), (2.2222222222222214, -2.2222222222222223), (2.2222222222222214, -3.111111111111111), (2.2222222222222214, -4.0), (3.1111111111111107, -4.0), (3.1111111111111107, -3.111111111111111), (3.1111111111111107, -2.2222222222222223), (3.1111111111111107, -1.3333333333333335), (3.1111111111111107, -0.44444444444444464), (3.1111111111111107, 0.44444444444444464), (3.1111111111111107, 1.333333333333333), (3.1111111111111107, 2.2222222222222214), (3.1111111111111107, 3.1111111111111107), (3.1111111111111107, 4.0), (4.0, 4.0), (4.0, 3.1111111111111107), (4.0, 2.2222222222222214), (4.0, 1.333333333333333), (4.0, 0.44444444444444464), (4.0, -0.44444444444444464), (4.0, -1.3333333333333335), (4.0, -2.2222222222222223), (4.0, -3.111111111111111), (4.0, -4.0)] 
+I = 0 
+ 
+Next_folder = 'Toluene-0001_000' 
+
+def move(poss, variable_dict):
+    # Move the tip from grid point I-1 to grid point I
+    global Nbtm, Nmol, Ntop, Grid, I
+    if I >= len(Grid):
+        return poss, variable_dict
+    i = 0
+    used = []
+    i += Nbtm
+    i += Nmol
+    prev = Grid[I-1] if I > 0 else Grid[I]
+    while i < Nbtm+Nmol+Ntop:
+        try:
+            poss[i][-3] = float(poss[i][-3])+Grid[I][0]-prev[0]
+            poss[i][-2] = float(poss[i][-2])+Grid[I][1]-prev[1]
+        except:
+            if not poss[i][-2] in used:
+                used.append(poss[i][-2])
+                variable_dict[poss[i][-2]] += Grid[I][1]-prev[1]
+            if not poss[i][-3] in used:
+                used.append(poss[i][-3])
+                variable_dict[poss[i][-3]] += Grid[I][0]-prev[0]
+        i+=1
+    return poss, variable_dict
+
+
+
+import re
+
+
+elem_dict =  {
+    1: 'H', 2: 'He', 3: 'Li', 4: 'Be', 5: 'B', 6: 'C', 7: 'N', 8: 'O', 9: 'F', 10: 'Ne',
+    11: 'Na', 12: 'Mg', 13: 'Al', 14: 'Si', 15: 'P', 16: 'S', 17: 'Cl', 18: 'Ar', 19: 'K',
+    20: 'Ca', 21: 'Sc', 22: 'Ti', 23: 'V', 24: 'Cr', 25: 'Mn', 26: 'Fe', 27: 'Co', 28: 'Ni',
+    29: 'Cu', 30: 'Zn', 31: 'Ga', 32: 'Ge', 33: 'As', 34: 'Se', 35: 'Br', 36: 'Kr', 37: 'Rb',
+    38: 'Sr', 39: 'Y', 40: 'Zr', 41: 'Nb', 42: 'Mo', 43: 'Tc', 44: 'Ru', 45: 'Rh', 46: 'Pd',
+    47: 'Ag', 48: 'Cd', 49: 'In', 50: 'Sn', 51: 'Sb', 52: 'Te', 53: 'I', 54: 'Xe', 55: 'Cs',
+    56: 'Ba', 57: 'La', 58: 'Ce', 59: 'Pr', 60: 'Nd', 61: 'Pm', 62: 'Sm', 63: 'Eu', 64: 'Gd',
+    65: 'Tb', 66: 'Dy', 67: 'Ho', 68: 'Er', 69: 'Tm', 70: 'Yb', 71: 'Lu', 72: 'Hf', 73: 'Ta',
+    74: 'W', 75: 'Re', 76: 'Os', 77: 'Ir', 78: 'Pt', 79: 'Au', 80: 'Hg', 81: 'Tl', 82: 'Pb',
+    83: 'Bi', 84: 'Po', 85: 'At', 86: 'Rn', 87: 'Fr', 88: 'Ra', 89: 'Ac', 90: 'Th', 91: 'Pa',
+    92: 'U', 93: 'Np', 94: 'Pu', 95: 'Am', 96: 'Cm', 97: 'Bk', 98: 'Cf', 99: 'Es', 100: 'Fm',
+    101: 'Md', 102: 'No', 103: 'Lr', 104: 'Rf', 105: 'Db', 106: 'Sg', 107: 'Bh', 108: 'Hs',
+    109: 'Mt', 110: 'Ds', 111: 'Rg', 112: 'Cn', 113: 'Nh', 114: 'Fl', 115: 'Mc', 116: 'Lv',
+    117: 'Ts', 118: 'Og'
+}
+
+def extract_final_positions(log_file_path):
+    # Initialize variables to store atom symbols and coordinates
+    all_atom_symbols = []
+    all_atom_coordinates = []
+    variable_dict = {}
+
+    # Regular expressions to match atom lines
+    atom_line_pattern = re.compile(r'^\s*(\d+)\s+(\d+)\s+(\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$')
+
+    with open(log_file_path, 'r') as log_file:
+        log_data = log_file.read()
+
+        # Find all occurrences of "Input orientation" sections
+        input_orientation_matches = re.finditer(r'Center +Atomic +Atomic +Coordinates \(Angstroms\)(.*?)Rotational constants', log_data, re.DOTALL)
+
+        for input_orientation_match in input_orientation_matches:
+            input_orientation_section = input_orientation_match.group(1)
+
+            # Initialize variables to store atom symbols and coordinates for this section
+            atom_symbols = []
+            atom_coordinates = []
+
+            # Iterate over atom lines and extract atom symbols and coordinates for this section
+            for line in input_orientation_section.split(intro):
+                if re.search(atom_line_pattern, line):
+                    atom_number, atomic_number, atom_type, x, y, z = re.search(atom_line_pattern, line).groups()
+                    atom_symbols.append(int(atomic_number))  # Convert atomic number to integer
+                    atom_coordinates.append([float(x), float(y), float(z)])
+            # Append the atom symbols and coordinates for this section to the overall lists
+            all_atom_symbols.append(atom_symbols)
+            all_atom_coordinates.append(atom_coordinates)
+            
+        # Define the pattern to capture the interval
+        interval_pattern = re.compile(r'(Angstroms and Degrees)(.*?)GradGradGrad', re.DOTALL)
+
+        # Find all matches using finditer
+        interval_matches = interval_pattern.finditer(log_data)
+        # Initialize a variable to store the last interval
+        last_interval = None
+        
+        # Iterate over matches and update the last_interval variable
+        for match in interval_matches:
+            last_interval = match.group(0)
+            
+        # Check if a last interval was found
+        if last_interval:
+            # Define a pattern to capture variable name and value pairs
+            variable_pattern = re.compile(r'! +(\w+) +([\d.-]+)')
+
+            # Find all matches within the last interval
+            variable_matches = variable_pattern.finditer(last_interval)
+
+            # Iterate over matches and extract variable names and values
+            for var_match in variable_matches:
+                var_name, var_value = var_match.groups()
+                variable_dict[var_name] = float(var_value)
+
+            # Now, 'variable_dict' contains the variable names and values for the last interval
+            # You can process or print the dictionary as needed            
+    return all_atom_symbols, all_atom_coordinates, variable_dict
+
+def read_opt_gjf(optgjf_path):
+    global P_line, Ant1, Ant2
+    header = ''
+    header_notmod = ''
+    poss_part = []
+    basisets = ''
+
+    end_header = re.compile(r'\s*(-?\d+)\s*,\s*(\d+)\s*$')
+    variables = re.compile(r'Variables:\s*$')
+    begin_sets = re.compile(r'([A-Za-z])\s+(\d+)\s*$')
+    
+    with open(optgjf_path, 'r') as file:
+        line = file.readline()
+        while not line.lstrip().startswith('#'):  # Link0 lines come before the route line
+            header += line
+            header_notmod += line
+            line = file.readline()
+        header_notmod += line
+        header += Ant1
+        header += Ant2
+        header += P_line
+        
+        header_notmod += f'{intro}'
+        try:
+                header_notmod += f'input{Next_folder} {intro}'
+        except:
+                pass
+        header_notmod += f'{intro}'
+
+        match = None
+        while not match:
+            line = file.readline()
+            header += line
+            match = end_header.match(line)
+        header_notmod += line
+    
+        line = file.readline()
+        match = None
+        while not match:
+            poss_part.append(line.split())
+            line = file.readline()
+            match = variables.match(line)
+            
+        match = None
+        while not match:
+            line = file.readline()
+            match = begin_sets.match(line)
+            
+        while line != '':
+            basisets += line
+            line = file.readline()
+    return header, basisets, header_notmod, poss_part
+
+def create_gjf(header, basisets, Elem, Coords):
+    global optgjf_path
+    with open(optgjf_path.split('.')[0]+'_opt'+'.gjf', 'w') as out:
+        out.write(header)
+        for elem, poss in zip(Elem, Coords):
+            out.write(f'{elem}  {float(poss[0]):.6f}   {float(poss[1]):.6f}   {float(poss[2]):.6f} {intro}')
+        out.write(f'{intro}')
+        out.write(basisets)
+    return
+
+def restore_bethe_spacing(coordinates, variable_dict):
+    # Gaussian09 relaxes every Bethe plane through its own z variable. Put the outer planes back at their
+    # original distance from the innermost one, so the block attached to the Bethe lattice keeps its geometry.
+    for side in globals().get('Bethe_layers', []):
+        reference = side['reference']
+        z_ref = float(coordinates[side['layers'][reference][1][0]][2])
+        for var, (offset, atoms) in side['layers'].items():
+            for i in atoms:
+                coordinates[i][2] = z_ref + offset
+            if var in variable_dict and reference in variable_dict:
+                variable_dict[var] = variable_dict[reference] + offset
+    return coordinates, variable_dict
+
+
+
+def create_rest_gjf(header, basisets, Elem, Coords, name):
+    with open('../'+name+'/input'+name+'.gjf', 'w') as out:
+        out.write(header)
+        for elem, poss in zip(Elem, Coords):
+            out.write(f'{elem}  {float(poss[0]):.6f}   {float(poss[1]):.6f}   {float(poss[2]):.6f} {intro}')
+        out.write(f'{intro}')
+        out.write(basisets)
+    return
+
+if __name__ == '__main__':
+        symbols_list, coordinates_list, variable_dict = extract_final_positions(log_file_path)
+        header, basisets, header_notmod, poss_part = read_opt_gjf(optgjf_path)
+        
+        # Write xyz the results for all sections
+        with open('Opt'+log_file_path.split('.')[0]+'.xyz', 'w') as out:
+            for idx, (symbols, coordinates) in enumerate(zip(symbols_list, coordinates_list), start=1):
+                out.write(f'{len(coordinates)} {intro}')
+                out.write(f"Timestep {idx} {intro}")
+                for symbol, coords in zip(symbols, coordinates):
+                    out.write(f"{elem_dict[symbol]} {coords[0]}, {coords[1]}, {coords[2]}{intro}")
+        
+        coordinates, variable_dict = restore_bethe_spacing(coordinates, variable_dict)
+        create_gjf(header, basisets, [elem_dict[x] for x in symbols], coordinates)
+        # Step I (0-based) is the relaxed first step moved I times; step 0 is this folder
+        for I in range(1, int(N_folder)):
+            i = ('0'*(len(str(N_folder))-len(str(I+1)))) + str(I+1)
+            j = ('0'*(len(str(N_folder))-len(str(I)))) + str(I)
+            coordinates,_ = move(coordinates, {})
+            header = header.replace(f'input{Folder_name}_{j}', f'input{Folder_name}_{i}')
+            create_rest_gjf(header, basisets, [elem_dict[x] for x in symbols], coordinates, Folder_name+'_'+i)

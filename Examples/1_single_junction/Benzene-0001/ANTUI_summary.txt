@@ -1,0 +1,19 @@
+ANT.UI v1.0.0 export summary
+Destination: Examples/1_single_junction/Benzene-0001
+
+Calculation: ANT input
+Atoms: 52 = bottom electrode 20 (Au, Point_FCC_[111]) + molecule 12 (Benzene, C6H6) + top electrode 20 (Au, Point_FCC_[111])
+  Bethe region (outer layers): bottom 16 atoms, top 16; anchor layer with minimal basis: bottom 10, top 10
+  Closest contacts: molecule-bottom 3.11 A, molecule-top 3.29 A, bottom-top 5.76 A
+Functional: HSE06 (Gaussian route rHSEH1PBE), close shell
+Electrons after ECP cores: 642; charge 0, multiplicity 1 (automatic)
+Basis set / ECP:
+  C, H: lanl2dz / lanl2dz
+  Au electrode (20 atoms): basis lanl2dz (built-in default); ECP lanl2dz (60 core electrons)
+  Au Bethe anchor (20 atoms): DFT_min_basis_pseudopot/Au_CRENBS.gbs; ECP same file (68 core electrons)
+  Bethe lattice parameters: BLPAR1 = lsda-crenbs, BLPAR2 = lsda-crenbs
+Optimisation: none (single-point calculations)
+Site configuration (USER_CONF.txt): Gaussian call 'g09', Python call 'python', ANT links '../ANT.Gaussian-master2.8.0/bin'
+
+Warnings:
+  ! JOBHEAD in USER_CONF.txt is still the placeholder: launchANT.sh will not have your cluster job header.
