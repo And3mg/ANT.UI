@@ -87,13 +87,15 @@ def test_u_from_the_glycerol_runs(junction, outdir, dft_opts):
     assert f'U = Sigma_occ + Sigma_unocc = {U:.3f} eV' in report
     assert f'IP - EA = {IP-EA:.3f} eV' in report
     lines = open(f'{d}/Glycerol.xyz').read().split('\n')
-    assert parse_u_line(lines[1]) == {'PBE': '11.86', 'HSE06': f'{U:.2f}'}
+    assert parse_u_line(lines[1]) == {'PBE': '5.88', 'HSE06': f'{U:.2f}'}
     assert [l.split() for l in lines[2:-1]] == file_atoms('Glycerol')
 
 
 def test_new_u_replaces_the_old_one_for_the_same_functional(junction, outdir, dft_opts):
+    objs = junction(mol = 'Glycerol')
+    objs[1].U = {'PBE': '11.86'}
     d, name = outdir()
-    _OUT.Create_getU_output(junction(mol = 'Glycerol'), d, name, dft_opts(Functional = 'PBE'))
+    _OUT.Create_getU_output(objs, d, name, dft_opts(Functional = 'PBE'))
     assert run_get_u(d, 'Glycerol').returncode == 0
     assert parse_u_line(open(f'{d}/Glycerol.xyz').read().split('\n')[1]) == {'PBE': '5.88'}
 
@@ -120,5 +122,5 @@ def test_summary_lists_the_three_calculations(junction, dft_opts):
     assert 'Glycerol_N.gjf: neutral, N electrons; charge 0, multiplicity 1 (rPBEPBE)' in text
     assert 'Glycerol_cation.gjf: cation, N-1; charge 1, multiplicity 2 (uPBEPBE)' in text
     assert 'Glycerol_anion.gjf: anion, N+1; charge -1, multiplicity 2 (uPBEPBE)' in text
-    assert 'already has U = 11.86 eV for PBE' in text
+    assert 'already has U = 5.88 eV for PBE' in text
     assert 'U_ELECTRON_SCREENING' in text
