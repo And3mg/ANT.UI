@@ -25,6 +25,11 @@ calculations should be regenerated.
 - The bottom electrode differed after re-selecting it; the orientation depended on the order in which the sliders
   were moved; output folder numbers could collide after a deletion; settings leaked between exports.
 - The program can be started from any folder.
+- Dragging the control window could abort Python on machines with Qt bindings installed, because matplotlib then
+  opened the 3D viewer with Qt. The viewer now always uses Tk, like the controls. Closing the viewer leaves the
+  controls working.
+- The 3D viewer redraws only when the junction changes. It used to redraw every cycle, which blocked the controls
+  and made a dragged window jump or snap back to where it started.
 - Molecule comment lines: only "FUNCTIONAL U" pairs are read; other text (e.g. leftover `Energy:` lines in
   Benzene, Toluene and Cyclohexane, now removed) is ignored.
 

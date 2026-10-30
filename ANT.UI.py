@@ -399,7 +399,6 @@ class object_controls():
     def update(self):
         self.obj.spatial_coords = np.array([self.slider_x.get(),self.slider_y.get(),self.slider_z.get()])
         self.obj.euler_angles = np.array([self.slider_phi.get(),self.slider_theta.get(),self.slider_psi.get()])
-        self.obj.plot_object(ax)
 
 
 class toplevel_opt():
@@ -953,8 +952,9 @@ class tkinter_window():
      
     def __init__(self):
         self.after_process = None
+        self.drawn_scene = None
         self.grid = None
-        
+
         #Frame for choosing electrodes
         self.frame_label_combo_elec = Frame(root)
         self.frame_label_combo_elec.configure(width=720,height=100)
@@ -1254,9 +1254,12 @@ class tkinter_window():
             self.check_U['state'] = NORMAL
         return
 
+    def scene(self):
+        '''What the viewer shows.'''
+        return [(obj.name, tuple(obj.elements), tuple(obj.spatial_coords), tuple(obj.euler_angles))
+                for obj in (self.molecule, self.up_electrode, self.down_electrode)]
+
     def Update(self):
-        ax.clear()
-        
         change_flag = False
         
         if self.molecule.name != self.combo.get():
@@ -1296,13 +1299,18 @@ class tkinter_window():
         self.mol_controls.update()
         self.top_controls.update()
         
-        self.down_electrode.plot_object(ax)
-        
-        set_axes_equal(ax)
-        fig.canvas.draw()
-        fig.canvas.blit()
-        fig.canvas.flush_events()
-        self.after_process = root.after(500, self.Update) 
+        # A redraw blocks the window for a few tenths of a second, so only when the junction changed: on every
+        # cycle, dragging the window jumped and could snap back. Drawing on a closed viewer crashes Tk.
+        scene = self.scene()
+        if scene != self.drawn_scene and plt.fignum_exists(fig.number):
+            self.drawn_scene = scene
+            ax.clear()
+            self.molecule.plot_object(ax)
+            self.up_electrode.plot_object(ax)
+            self.down_electrode.plot_object(ax)
+            set_axes_equal(ax)
+            fig.canvas.draw()
+        self.after_process = root.after(500, self.Update)
 
 #%% MAIN
 
@@ -1314,16 +1322,22 @@ def show_error(exc_type, exc_value, exc_tb):
 
 def main():
     global root, ax, fig
-    plt.ion()
-    fig = plt.figure(figsize = (8,8))
-    fig.patch.set_facecolor(bg_color)
-
-    ax = plt.subplot(projection='3d')
-
+    # root first: Toplevel() and BooleanVar() without a master attach to the first Tk window of the process
     root = customtkinter.CTk()
     root.title(f'ANT.UI v{__version__}')
     root.geometry('720x800')
     root.report_callback_exception = show_error
+    root.protocol('WM_DELETE_WINDOW', root.quit)    # the Tk loop would otherwise run until the viewer is closed too
+
+    # Tk viewer, always: matplotlib picks Qt when it is installed, and Qt's event loop then runs Tk's timers
+    # inside fig.canvas.flush_events(), which aborts Python (seen when dragging this window)
+    plt.switch_backend('TkAgg')
+    fig = plt.figure(figsize = (8,8))
+    fig.patch.set_facecolor(bg_color)
+
+    ax = plt.subplot(projection='3d')
+    # not plt.ion(): Update draws by itself, and an automatic redraw left pending crashes Tk if the viewer is closed
+    plt.show(block = False)
 
     a = tkinter_window()
     a.Update()
