@@ -10,7 +10,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        # ubuntu-latest (26.04) has no Python 3.9 build for setup-python; 24.04 still does
+        os: [windows-latest, ubuntu-24.04]
         python: ['3.9', '3.12']
         numpy: ['numpy<2', 'numpy>=2']
     runs-on: ${{ matrix.os }}

@@ -1,0 +1,17 @@
+ANT.UI v1.1.0 export summary
+Destination: Examples/5_get_u/Glycerol-0001
+
+Calculation: Hubbard U of the isolated molecule
+Molecule: Glycerol (C3H8O3, 14 atoms), coordinates as in Molecules/Glycerol.xyz
+Functional: PBE (Gaussian route PBEPBE); basis lanl2dz, ECP lanl2dz
+Electrons after ECP cores: 50
+  Glycerol_N.gjf: neutral, N electrons; charge 0, multiplicity 1 (rPBEPBE)
+  Glycerol_cation.gjf: cation, N-1; charge 1, multiplicity 2 (uPBEPBE)
+  Glycerol_anion.gjf: anion, N+1; charge -1, multiplicity 2 (uPBEPBE)
+U = (IP - EA) - (e_LUMO - e_HOMO): the gas-phase correction that ANT splits as -U/2 on occupied and +U/2 on empty molecular levels.
+Get_U.py writes U.Glycerol.dat and Glycerol.xyz with "PBE U" in its comment line; copy that file to Molecules/ to use it.
+  The molecule file already has U = 11.86 eV for PBE; the new file replaces it.
+In the junction ANT uses UPLUS = U x U_ELECTRON_SCREENING (now 1.0), which the researcher chooses for the molecule and contact geometry.
+
+Warnings:
+  ! JOBHEAD in USER_CONF.txt is still the placeholder: the launch scripts will not have your cluster job header.
