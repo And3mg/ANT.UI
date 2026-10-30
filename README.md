@@ -44,6 +44,19 @@ pip install -r requirements-hpc.txt
 
 ---
 
+## Running the tests
+
+The test suite checks the generated inputs without Gaussian or a cluster: every atom has a basis set (and an ECP when its basis needs one), the charge and multiplicity agree with the electron count, the generated helper scripts are valid Python, and the sequence assistants produce every step. For optimisation chains it writes the Gaussian log an unchanged optimisation would leave, runs the generated `link_opt.py`, and checks that the propagated geometries match the requested scan.
+
+```bash
+pip install pytest
+python -m pytest
+```
+
+Run it from the repository root. Tests marked `xfail` document known bugs that are still open.
+
+---
+
 ## File structure
 
 | Path | Contents |
