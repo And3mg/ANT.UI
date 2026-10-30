@@ -1,4 +1,4 @@
-ANT.UI v1.0.0 export summary
+ANT.UI v1.1.0 export summary
 Destination: Examples/3_rotation_first_step/Glycerol-0001
 
 Calculation: Rotation Assistant sequence
@@ -14,7 +14,7 @@ Basis set / ECP:
   Bethe lattice parameters: BLPAR1 = lsda-crenbs, BLPAR2 = lsda-crenbs
 Optimisation: Gaussian, at most 20 steps
   bottom Bethe fix, bottom electrode fix, molecule all, top electrode fix, top Bethe fix
-  Chain: first step
+  Chain: first step (only the first folder is relaxed in Gaussian; its link_opt.py writes the inputs of the other folders from the relaxed geometry, which are not re-optimised)
 Rotation: 7 configurations at 0, 15, 30, 45, 60, 75, 90 degrees about z, relative to the current orientation; rotating: molecule
 Site configuration (USER_CONF.txt): Gaussian call 'g09', Python call 'python', ANT links '../ANT.Gaussian-master2.8.0/bin'
 

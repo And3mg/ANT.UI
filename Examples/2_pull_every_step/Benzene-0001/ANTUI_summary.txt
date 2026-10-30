@@ -1,4 +1,4 @@
-ANT.UI v1.0.0 export summary
+ANT.UI v1.1.0 export summary
 Destination: Examples/2_pull_every_step/Benzene-0001
 
 Calculation: Pull Assistant sequence
@@ -14,7 +14,7 @@ Basis set / ECP:
   Bethe lattice parameters: BLPAR1 = lsda-crenbs, BLPAR2 = lsda-crenbs
 Optimisation: Gaussian, at most 20 steps
   bottom Bethe fix, bottom electrode fix, molecule all, top electrode fix, top Bethe fix
-  Chain: every step
+  Chain: every step (every folder is relaxed, starting from the relaxed geometry of the previous one)
 Pull: 20 configurations; the gap grows by 0.1 A per step (each electrode moves dz/2); total change 1.900 A
   Last step contacts: molecule-bottom 3.98 A, molecule-top 4.17 A, bottom-top 7.66 A
 Site configuration (USER_CONF.txt): Gaussian call 'g09', Python call 'python', ANT links '../ANT.Gaussian-master2.8.0/bin'

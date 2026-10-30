@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: "If you use ANT.UI, please cite the article below and the archived version of the software you used."
+title: "ANT.UI"
+version: 1.1.0
+date-released: 2026-11-15
+license: MIT
+repository-code: "https://github.com/And3mg/ANT.UI"
+type: software
+authors:
+  - family-names: Martinez-Garcia
+    given-names: Andrés
+    email: andres.martinez@ua.es
+    affiliation: "Departamento de Física and IUMA, Universidad de Alicante"
+  - family-names: Palacios
+    given-names: Juan José
+    affiliation: "Departamento de Física de la Materia Condensada and IFIMAC, Universidad Autónoma de Madrid"
+  - family-names: Sabater
+    given-names: Carlos
+    email: carlos.sabater@ua.es
+    affiliation: "Departamento de Física and IUMA, Universidad de Alicante"
+keywords:
+  - molecular electronics
+  - quantum transport
+  - NEGF-DFT
+  - ANT.Gaussian
+  - molecular junction
+preferred-citation:
+  type: article
+  title: "ANT.UI: An interactive 3D tool for preparing ANT.Gaussian molecular junction geometries"
+  journal: SoftwareX
+  year: 2026
+  authors:
+    - family-names: Martinez-Garcia
+      given-names: Andrés
+    - family-names: Palacios
+      given-names: Juan José
+    - family-names: Sabater
+      given-names: Carlos
