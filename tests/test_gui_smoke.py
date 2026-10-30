@@ -1,6 +1,8 @@
 """Open the real window, drive it through its own callbacks, close it."""
 import os
 import shutil
+import subprocess
+import sys
 import time
 import traceback
 
@@ -60,6 +62,74 @@ def test_window_starts_and_exports(window):
     assert all(os.path.isdir(d) for d in created)
     assert len(set(created)) == 4, 'every export gets its own folder'
     assert 'configurations' in window.status.cget('text')
+    assert window.errors == [], window.errors[0]
+
+
+def run_main(mainloop):
+    """Run ANT.UI.main() with this body as the window's mainloop, in its own process: Tk cannot create
+    a new root after one was destroyed."""
+    code = f'''
+import importlib.util, tkinter
+import customtkinter, matplotlib
+import matplotlib.pyplot as plt
+
+tk_mainloop = customtkinter.CTk.mainloop
+def mainloop(self):
+{mainloop}
+
+customtkinter.CTk.mainloop = mainloop
+spec = importlib.util.spec_from_file_location('antui', 'ANT.UI.py')
+antui = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(antui)
+antui.main()
+'''
+    return subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, timeout=30)
+
+
+def test_main_uses_the_tk_viewer_and_a_ctk_default_root(gui):
+    """With Qt installed matplotlib picked it, and dragging the window aborted Python inside flush_events."""
+    out = run_main('''
+    print(matplotlib.get_backend(), type(tkinter._default_root).__name__)
+    self.destroy()
+''')
+    assert out.stdout.split()[-2:] == ['TkAgg', 'CTk'], out.stderr
+
+
+def test_closing_the_viewer_leaves_the_controls_running(gui):
+    """The refresh loop drew on the destroyed Tk viewer: segmentation fault."""
+    out = run_main('''
+    self.after(1000, lambda: plt.close('all'))
+    self.after(3000, lambda: (print('still running'), self.destroy()))
+    tk_mainloop(self)
+''')
+    assert out.returncode == 0 and 'still running' in out.stdout, out.stderr
+
+
+def test_closing_the_controls_ends_the_program_with_the_viewer_open(gui):
+    """The Tk loop waits for every Tk window: the process stayed alive with the viewer."""
+    out = run_main('''
+    self.after(1000, lambda: self.tk.call(self.protocol('WM_DELETE_WINDOW')))
+    tk_mainloop(self)
+    print('finished')
+''')
+    assert 'finished' in out.stdout, out.stderr
+
+
+def test_viewer_redraws_only_when_the_junction_changes(window, antui, monkeypatch):
+    """A full 3D redraw every cycle blocked the window: dragging it jumped and could snap back."""
+    let_gui_refresh(window)
+    draws = []
+    monkeypatch.setattr(antui.fig.canvas, 'draw', lambda: draws.append(1))
+    let_gui_refresh(window, 1.5)
+    assert draws == []
+    z = window.mol_controls.slider_z.get()
+    try:
+        window.mol_controls.slider_z.set(z + 1)
+        let_gui_refresh(window)
+        assert len(draws) == 1
+    finally:
+        window.mol_controls.slider_z.set(z)
+        let_gui_refresh(window)
     assert window.errors == [], window.errors[0]
 
 
