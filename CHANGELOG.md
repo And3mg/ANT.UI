@@ -24,6 +24,8 @@ calculations should be regenerated.
 - Inline `#` comments in `USER_CONF.txt` broke the route line of optimisation chains.
 - The bottom electrode differed after re-selecting it; the orientation depended on the order in which the sliders
   were moved; output folder numbers could collide after a deletion; settings leaked between exports.
+- Stored PBE U of glycerol: 11.86 eV is replaced by 5.88 eV, the value given by (IP - EA) - (e_LUMO - e_HOMO) from
+  its gas-phase runs. Inputs written with the old value should be regenerated.
 - The program can be started from any folder.
 - Dragging the control window could abort Python on machines with Qt bindings installed, because matplotlib then
   opened the 3D viewer with Qt. The viewer now always uses Tk, like the controls. Closing the viewer leaves the
