@@ -8,8 +8,10 @@ rotationZi = np.array([[np.cos(dtheta), np.sin(dtheta), 0],
                         [0, 0, 1]])
 
 def move(poss, variable_dict):
-    # Rotate each selected component about the z axis through its own centre
-    global Nbtm, Nmol, Ntop, rotationZi, Flag_bottom, Flag_mol, Flag_top
+    # Rotate each selected component about the z axis through the centre it has in the viewer (Centres), not
+    # through the centroid of the relaxed geometry: a relaxation that shifts the molecule would otherwise move
+    # its contact atoms off their apices at every step
+    global Nbtm, Nmol, Ntop, rotationZi, Flag_bottom, Flag_mol, Flag_top, Centres
     groups = [(0, Nbtm, Flag_bottom), (Nbtm, Nbtm+Nmol, Flag_mol), (Nbtm+Nmol, Nbtm+Nmol+Ntop, Flag_top)]
 
     def value(token):
@@ -18,12 +20,11 @@ def move(poss, variable_dict):
         except (TypeError, ValueError):
             return variable_dict[token]
 
-    for start, end, flag in groups:
+    for (start, end, flag), (cx, cy) in zip(groups, Centres):
         if not flag:
             continue
         xyz = np.array([[value(t) for t in poss[i][-3:]] for i in range(start, end)])
-        centre = xyz.mean(axis = 0)
-        centre[2] = 0
+        centre = np.array([cx, cy, 0.])
         new = (xyz - centre) @ rotationZi + centre
         used = []
         for k, i in enumerate(range(start, end)):

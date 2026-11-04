@@ -96,6 +96,39 @@ PROPAGATION = [
 ]
 
 
+@pytest.mark.parametrize('chains', ['first step', 'every step'])
+def test_rotation_chain_keeps_the_viewer_axis_when_the_relaxation_shifts_the_molecule(junction, outdir, opt_data,
+                                                                                     dft_opts, chains):
+    """X17: chains rotated about the centroid of the relaxed molecule. A relaxation that moved it sideways then
+    swung its contact atoms off their apices (Glycerol-0005: top contact 2.32 -> 2.12 A over 90 deg)."""
+    objs = junction()
+    axis = np.array([*objs[1].spatial_coords[:2], 0.0])
+    mol = slice(objs[0].N, objs[0].N + objs[1].N)
+    d, name = outdir()
+    generate('rot', objs, d, name, chains, opt_data, dft_opts, frm=0, to=45, by=15)
+    folders = step_folders(d, name)
+    t = np.radians(15)
+    turn = np.array([[np.cos(t), np.sin(t), 0], [-np.sin(t), np.cos(t), 0], [0, 0, 1]])
+
+    def relax(f):
+        """The optimisation moves every molecule atom 0.3 A along x; returns the relaxed coordinates."""
+        g = Gjf(f'{d}/{f}/input{f}.gjf')
+        fake_gaussian_log(f'{d}/{f}/input{f}.gjf', {s[0]: 0.3 for s in g.symbols[mol]})
+        run_link_opt(f'{d}/{f}')
+        relaxed = g.coords.copy()
+        relaxed[mol, 0] += 0.3
+        return relaxed
+
+    relaxed = relax(folders[0])
+    for k, f in enumerate(folders[1:], 1):
+        expected = relaxed.copy()
+        steps = k if chains == 'first step' else 1
+        expected[mol] = (relaxed[mol] - axis) @ np.linalg.matrix_power(turn, steps) + axis
+        np.testing.assert_allclose(Gjf(f'{d}/{f}/input{f}.gjf').coords, expected, atol=1e-4, err_msg=f'step {k + 1}')
+        if chains == 'every step' and k < len(folders) - 1:
+            relaxed = relax(f)
+
+
 @pytest.mark.parametrize('kind,chains,kw', PROPAGATION)
 def test_chain_propagates_the_requested_geometries(junction, outdir, opt_data, dft_opts, kind, chains, kw):
     kw = dict(kw)
