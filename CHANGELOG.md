@@ -13,7 +13,9 @@ calculations should be regenerated.
 - First-step chains moved every propagated configuration one increment too far, and symmetric pulls halved the
   step at every configuration.
 - Rotation chains turned clockwise (the viewer turns counter-clockwise) and about the origin instead of the
-  component's own centre. Rotation angles are now relative to the orientation shown in the viewer.
+  component's own centre. They now turn about the axis through the centre the component has in the viewer, also
+  when the optimisation moves it sideways (the relaxed centroid would drag the contact atoms off their apices).
+  Rotation angles are now relative to the orientation shown in the viewer.
 - Every-step grid scans lagged one point behind.
 - Symmetric pulls with decimal steps (e.g. dz = 0.1, nz = 3) stopped with an `IndexError`.
 - Bethe-lattice layers in z mode: the second plane got one z variable per atom. Gaussian now relaxes one z per

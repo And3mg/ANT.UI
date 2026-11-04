@@ -318,6 +318,7 @@ def Create_rot_output(objs, Dir, name, angles, boolean_data, SOC, opt_data, DFT_
                 text += f'Flag_bottom = {boolean_data[0]} \n'
                 text += f'Flag_mol = {boolean_data[1]} \n'
                 text += f'Flag_top = {boolean_data[2]} \n'
+                text += f'Centres = {[[float(c) for c in obj.spatial_coords[:2]] for obj in objs]} \n'
                 if opt_data['Chains'] == 'first step' and i == 0:
                     text += f"Next_folder = '{name}_{'0'*width}' \n"
                     text += read_template('Move_rot.txt') + '\n'
