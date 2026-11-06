@@ -7,5 +7,5 @@ CHARGEACC = 1.0d-5
 NSPINLOCK = 00
 LDOS_BEG = 56  
 LDOS_END = 56  
-BLPAR1 = lsda-crenbs 
-BLPAR2 = lsda-crenbs 
+BLPAR1 = Papacon 
+BLPAR2 = Papacon 

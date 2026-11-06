@@ -5,5 +5,5 @@ NPULAY = 4
 FERMIACC = 1.0d-5
 CHARGEACC = 1.0d-5
 NSPINLOCK = 00
-BLPAR1 = lsda-crenbs 
-BLPAR2 = lsda-crenbs 
+BLPAR1 = Papacon 
+BLPAR2 = Papacon 

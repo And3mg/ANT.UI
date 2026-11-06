@@ -11,7 +11,7 @@ Basis set / ECP:
   C, H: lanl2dz / lanl2dz
   Au electrode (20 atoms): basis lanl2dz (built-in default); ECP lanl2dz (60 core electrons)
   Au Bethe anchor (20 atoms): DFT_min_basis_pseudopot/Au_CRENBS.gbs; ECP same file (68 core electrons)
-  Bethe lattice parameters: BLPAR1 = lsda-crenbs, BLPAR2 = lsda-crenbs
+  Bethe lattice parameters: BLPAR1 = Papacon, BLPAR2 = Papacon
 Optimisation: none (single-point calculations)
 Site configuration (USER_CONF.txt): Gaussian call 'g09', Python call 'python', ANT links '../ANT.Gaussian-master2.8.0/bin'
 

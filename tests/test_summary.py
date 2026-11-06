@@ -40,14 +40,30 @@ def test_mixed_soc_lists_every_ecp(junction, opt_data, dft_opts):
     assert 'Au SOC parameters' in text and 'Cu SOC parameters' in text
 
 
-@pytest.mark.parametrize('bottom,top,flagged', [('Pt', 'Au', 'halved'), ('Cu', 'Au', 'halved'), ('Au', 'Pt', None),
-                                                ('Au', 'Au', None), ('Ni', 'Pt', 'spin-2'), ('Pt', 'Ni', None)])
+@pytest.mark.parametrize('bottom,top,flagged', [('Pt', 'Au', None), ('Cu', 'Au', None), ('Au', 'Pt', None),
+                                                ('Au', 'Au', None), ('Ni', 'Pt', 'spin-2'), ('Ni', 'Au', 'spin-2'),
+                                                ('Pt', 'Ni', None)])
 def test_mixed_electrode_order_is_flagged(junction, opt_data, dft_opts, bottom, top, flagged):
-    """ANT <= 2.8.2 keeps BLPAR1's unit and ISPIN for BLPAR2 (Pt-then-Au halves every Au parameter, job 36145)."""
+    """ANT <= 2.8.2 keeps BLPAR1's unit and ISPIN for BLPAR2. Every set now declares RYD, so only ISPIN can leak."""
     _, warnings = text_of(*describe_export(junction(bottom=bottom, top=top), 'ANT', opt_data(), dft_opts()))
     assert ('BLPAR2' in warnings) == (flagged is not None)
     if flagged:
         assert flagged in warnings
+
+
+def test_a_set_without_unit_after_one_in_ryd_is_flagged(junction, opt_data, dft_opts, monkeypatch):
+    """With lsda-crenbs (Hartree, no unit line) for Au, a Pt bottom halved every Au parameter (job 36145)."""
+    monkeypatch.setitem(_DICS.BLPAR_HEADER, 'Au', (None, 1))
+    _, warnings = text_of(*describe_export(junction(bottom='Pt', top='Au'), 'ANT', opt_data(), dft_opts()))
+    assert 'halved' in warnings
+
+
+def test_au_electrodes_use_the_papacon_set(junction, outdir, opt_data, dft_opts):
+    """lsda-crenbs gives 2.4 times the Au electrode DOS at E_F in ANT and shifts T(E_F) by up to 32 % (2026-11-03)."""
+    d, name = outdir()
+    _OUT.Create_output(junction(), d, name, opt_data(), dft_opts())
+    ant = open(f'{d}/input{name}.ant').read().split('\n')
+    assert [l.split() for l in ant if l.startswith('BLPAR')] == [['BLPAR1', '=', 'Papacon'], ['BLPAR2', '=', 'Papacon']]
 
 
 def test_every_metal_has_a_bethe_header():
