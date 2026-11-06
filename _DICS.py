@@ -118,10 +118,12 @@ DFT_pseudopotentials = {}
 DFT_basis = {}
 
 
-BLPAR = {'Au': 'lsda-crenbs', 'Cu': 'Papacon-sd', 'Pt': 'Papacon', 'Ag': 'Papacon', 'Al': 'Papacon', 'Ni': 'Papacon'}
+# Au uses Papacon, not lsda-crenbs: ANT reads lsda-crenbs as an orthogonal tight-binding set, which gives 2.4 times the
+# electrode DOS at E_F and a band twice as wide (ANT runs of 2026-11-03)
+BLPAR = {'Au': 'Papacon', 'Cu': 'Papacon-sd', 'Pt': 'Papacon', 'Ag': 'Papacon', 'Al': 'Papacon', 'Ni': 'Papacon'}
 # Energy unit and last ISPIN declared by each BLPAR set in BL<Z>.dat (None: not declared, ANT's Hartree / spin 1).
 # ANT.Gaussian <= 2.8.2 keeps both from BLPAR1 when it reads BLPAR2, so an undeclared one in BLPAR2 is inherited.
-BLPAR_HEADER = {'Au': (None, 1), 'Cu': ('RYD', 1), 'Pt': ('RYD', None), 'Ag': ('RYD', 1), 'Al': ('RYD', 1), 'Ni': ('RYD', 2)}
+BLPAR_HEADER = {'Au': ('RYD', None), 'Cu': ('RYD', 1), 'Pt': ('RYD', None), 'Ag': ('RYD', 1), 'Al': ('RYD', 1), 'Ni': ('RYD', 2)}
 
 #%% Añadir los dft basis disponibles
 

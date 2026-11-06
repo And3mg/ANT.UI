@@ -42,6 +42,10 @@ calculations should be regenerated.
   sets (band error 3–10 meV). The previous fit counted part of the SOC twice and gave factors that were too small.
   RCUT is now 2.0 bohr for all three. Al and Cu keep 1, 1, 0. `SOC_params/antg-basis-sets-and-socfacs.pdf`
   documents the method and every element.
+- Au electrodes use the `Papacon` Bethe-lattice set instead of `lsda-crenbs`. ANT reads `lsda-crenbs` as an
+  orthogonal tight-binding set, which gives the Au electrode 2.4 times the bulk DOS at E_F (0.44 vs 0.19 states/eV per
+  spin), a band about twice as wide, a dip in T(E) at E_F + 3.5 eV, a Fermi level 0.35-0.50 eV higher, and changes
+  T(E_F) by +1.5 % (atomic nanocontact) to -32 % (5 A tunnelling gap). Au inputs written by 1.0.0 should be regenerated.
 
 ### Added
 - Pre-export summary of the scientific setup (atoms per region, contacts, electrons, charge and multiplicity, basis
@@ -56,8 +60,9 @@ calculations should be regenerated.
 - Worked examples (`Examples/`) and a revised user manual.
 - `ANT.UI.bat` launcher for Windows.
 - Warning for mixed-metal junctions that ANT.Gaussian 2.8.2 and earlier read wrongly: the top electrode's
-  Bethe-lattice parameters inherit the energy unit (and ISPIN) of the bottom ones, so for example a Pt bottom and an
-  Au top halve every Au parameter. Swap the electrodes or use an ANT build with the fix.
+  Bethe-lattice parameters inherit the energy unit and ISPIN of the bottom ones. With the current sets (all in Ry) this
+  affects a Ni bottom with a Pt or Au top, whose parameters go into the spin-2 channel. Swap the electrodes or use an
+  ANT build with the fix.
 - Get U button: Gaussian single points of the isolated molecule with N, N-1 and N+1 electrons and a `Get_U.py`
   script that computes U = (IP - EA) - (e_LUMO - e_HOMO) and writes the molecule file with the U of the chosen
   functional in its comment line.

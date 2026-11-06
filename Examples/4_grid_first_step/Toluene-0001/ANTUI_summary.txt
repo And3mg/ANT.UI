@@ -11,7 +11,7 @@ Basis set / ECP:
   C, H: lanl2dz / lanl2dz
   Au electrode (30 atoms): basis lanl2dz (built-in default); ECP lanl2dz (60 core electrons)
   Au Bethe anchor (30 atoms): DFT_min_basis_pseudopot/Au_CRENBS.gbs; ECP same file (68 core electrons)
-  Bethe lattice parameters: BLPAR1 = lsda-crenbs, BLPAR2 = lsda-crenbs
+  Bethe lattice parameters: BLPAR1 = Papacon, BLPAR2 = Papacon
 Optimisation: Gaussian, at most 20 steps
   bottom Bethe fix, bottom electrode fix, molecule all, top electrode fix, top Bethe fix
   Chain: first step (only the first folder is relaxed in Gaussian; its link_opt.py writes the inputs of the other folders from the relaxed geometry, which are not re-optimised)
