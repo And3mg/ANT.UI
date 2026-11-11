@@ -87,6 +87,10 @@ def main():
     # 5. Get U: PBE single points of isolated glycerol with N, N-1 and N+1 electrons and the Get_U.py analysis
     export('5_get_u', 'getU', _OUT.Create_getU_output, junction('Glycerol', -2.0, 6.6), pbe, dft=pbe)
 
+    # 6. SOC: the benzene junction of example 1 with spin-orbit coupling in the Au electrodes (SOC basis sets,
+    #    pseudopotentials and SOC factors from SOC_params/), single-point ANT input
+    export('6_soc_junction', 'SOC', _OUT.Create_output_soc, junction('Benzene', -3.0, 5.2), OPT_NONE, pbe, dft=pbe)
+
 
 if __name__ == '__main__':
     main()

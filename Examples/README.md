@@ -10,6 +10,7 @@ Examples 2–4 use the settings of the three panels of Fig. 2 of the ANT.UI pape
 | `3_rotation_first_step` | Fig. 2(b): rotation | Au(111) tip / glycerol / Au(111) tip, 54 atoms | PBE, 0–90° in 15° steps, molecule relaxed at the first step |
 | `4_grid_first_step` | Fig. 2(c): tip scan | Au(111) slab / toluene / Au(111) tip, 75 atoms | PBE, 10 × 10 points over 8 × 8 Å, molecule relaxed at the first step |
 | `5_get_u` | Hubbard U for DFT+U | isolated glycerol, 14 atoms | PBE single points with N, N−1 and N+1 electrons; `Get_U.py` writes `U.Glycerol.dat` and `Glycerol.xyz` with the U line |
+| `6_soc_junction` | Transport with spin–orbit coupling | same junction as example 1 | PBE; SOC basis sets, pseudopotentials and SOC factors from `SOC_params/` on the Au atoms outside the Bethe region |
 
 Every folder contains `ANTUI_summary.txt`, the full description of the model that ANT.UI showed before writing: atoms per region, basis sets and pseudopotentials per element and region, charge and multiplicity, optimisation constraints and sequence settings.
 

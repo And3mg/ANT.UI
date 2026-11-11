@@ -70,7 +70,7 @@ Run it from the repository root. The same tests run on every push on Windows and
 | `_SUMMARY.py` | Pre-export summary and checks (saved as `ANTUI_summary.txt` with every output) |
 | `CHANGELOG.md` | Changes between versions |
 | `_DICS.py` | Element dictionaries, functional list, user config loader |
-| `Examples/` | Inputs of the manual's worked examples (the three cases of Fig. 2 of the paper) and the script that regenerates them |
+| `Examples/` | Inputs of the manual's worked examples (the three cases of Fig. 2 of the paper, Get U and SOC) and the script that regenerates them |
 | `tests/` | Automated tests of the generated inputs (`python -m pytest`) |
 | `ElectrodesDFT/` | Pre-built electrode geometries (XYZ, top-electrode convention) |
 | `Molecules/` | Molecule library (XYZ format) |
