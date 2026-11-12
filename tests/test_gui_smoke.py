@@ -133,6 +133,159 @@ def test_viewer_redraws_only_when_the_junction_changes(window, antui, monkeypatc
     assert window.errors == [], window.errors[0]
 
 
+def test_plus_minus_buttons_move_one_step_and_the_label_follows(window):
+    """The +/- buttons moved the slider one step but labelled it one step further: the label jumped by
+    0.2 on the first press and by 0.3 when the direction changed."""
+    for scale, step in ((window.mol_controls.slider_x, 0.1), (window.mol_controls.slider_phi, 1)):
+        start = scale.get()
+        try:
+            values = []
+            for button in ('+', '+', '+', '-', '-', '+'):
+                (scale.slider_plus if button == '+' else scale.slider_minus).invoke()
+                values.append(scale.get())
+                shown = float(scale.label.cget('text').split('=')[1])
+                assert shown == pytest.approx(scale.get(), abs=1e-9), scale.label.cget('text')
+            np.testing.assert_allclose(np.diff([start] + values), step * np.array([1, 1, 1, -1, -1, 1]), atol=1e-9)
+        finally:
+            scale.set(start)
+    assert window.errors == [], window.errors[0]
+
+
+def test_slider_positions_stay_on_the_step_grid(window, antui):
+    """(25.3 + 20)/0.1 = 452.999...: int() gave one step fewer, so the positions were 0.1002 A apart."""
+    import customtkinter
+    frame = customtkinter.CTkFrame(window.root)
+    try:
+        scale = antui.Scale(frame, 'z', -20, 25.3, 0.1)
+        scale.set(0)
+        for _ in range(7):
+            scale.slider_plus.invoke()
+        assert scale.get() == pytest.approx(0.7, abs=1e-9)
+        assert scale.label.cget('text') == 'z = 0.7'
+        scale.set(-1e-12)
+        assert scale.label.cget('text') == 'z = 0.0'      # not "-0.0"
+    finally:
+        frame.destroy()
+
+
+@pytest.fixture
+def extra_molecule():
+    """Write Molecules/zzpytest_<name>.xyz for one test."""
+    made = []
+
+    def make(name, text):
+        path = f'Molecules/zzpytest_{name}.xyz'
+        with open(path, 'w') as f:
+            f.write(text)
+        made.append(path)
+        return f'zzpytest_{name}'
+    yield make
+    for path in made:
+        os.remove(path)
+
+
+WATER = '3\n\nO 0 0 0\nH 0.96 0 0\nH -0.24 0.93 0\n'
+
+
+def test_molecule_file_with_blank_lines_loads(antui, extra_molecule):
+    name = extra_molecule('blank', WATER.replace('H 0.96', '\nH 0.96') + '\n\n')
+    mol = antui.xyz_object(f'Molecules/{name}.xyz')
+    assert list(mol.elements) == ['O', 'H', 'H']
+
+
+def test_unreadable_molecule_keeps_the_window_working(window, antui, extra_molecule):
+    """An unreadable molecule file removed the molecule controls and stopped the refresh loop."""
+    name = extra_molecule('short', '5\n\nO 0 0 0\nH 0.96 0 0\n')
+    start = window.molecule.name
+    window.combo.set(name)
+    let_gui_refresh(window)
+    assert len(window.errors) == 1 and 'says 5 atoms' in window.errors[0]
+    assert window.combo.get() == start and window.molecule.name == start
+    window.errors.clear()
+    window.combo.set('Toluene')
+    let_gui_refresh(window)
+    window.mol_controls.slider_z.set(1.5)
+    let_gui_refresh(window)
+    assert window.molecule.name == 'Toluene' and window.molecule.spatial_coords[2] == pytest.approx(1.5)
+    window.mol_controls.slider_z.set(0)
+    window.combo.set(start)
+    let_gui_refresh(window)
+    assert window.errors == [], window.errors[0]
+
+
+def test_soc_needs_factors_for_every_metal(window):
+    """Ni has no SOC factors: the button stayed enabled (widget['state'] = ... does nothing in customtkinter)
+    and the export failed with KeyError: 'Ni'."""
+    try:
+        window.combo_top_elem.set('Ni')
+        let_gui_refresh(window)
+        assert window.soc_btn.cget('state') == 'disabled'
+        with pytest.raises(ValueError, match = 'No SOC factors for Ni'):
+            window.create_soc()
+        with pytest.raises(ValueError, match = 'No SOC factors for Ni'):
+            window.create_rot_dft(0, 30, 15, True, False, False, True)
+    finally:
+        window.combo_top_elem.set('Au')
+        let_gui_refresh(window)
+    assert window.soc_btn.cget('state') == 'normal'
+
+
+def test_dft_u_box_is_disabled_without_a_stored_u(window):
+    window.combo_funct.set('HSE06')
+    window.update_DFT(None)
+    has_u = 'HSE06' in window.molecule.U
+    assert window.check_U.cget('state') == ('normal' if has_u else 'disabled')
+
+
+def test_options_dialog_keeps_opt_in_ant(window, antui):
+    """The checkbox started unticked, so Ok after any other change switched optimisation in ANT off."""
+    window.opt_data['Opt_in_ANT'] = True
+    try:
+        antui.toplevel_opt(window.opt_data, window.molecule, window.update_opt_options).ok()
+        assert window.opt_data['Opt_in_ANT'] is True
+    finally:
+        window.opt_data['Opt_in_ANT'] = False
+
+
+def test_grid_assistant_uses_what_is_typed(window, antui):
+    """Ok returned the values of the last 0.5 s preview, and silently kept them when an entry was invalid."""
+    got = []
+    g = antui.toplevel_grid(-1, 1, -1, 1, 5.0, window.down_electrode.true_coordinates(),
+                            window.molecule.true_coordinates(), got.append)
+    try:
+        g.update()
+        g.text_nx.delete(0, 'end'); g.text_nx.insert(0, '4')
+        g.text_xmax.delete(0, 'end'); g.text_xmax.insert(0, '2,5')
+        with pytest.raises(ValueError, match = 'decimal point'):
+            g.ok()
+        g.text_xmax.delete(0, 'end'); g.text_xmax.insert(0, '2.5')
+        g.ok()
+    finally:
+        if g.window.winfo_exists():
+            g.window.destroy()
+    assert got == [[[-1.0, 2.5, 4], [-1.0, 1.0, 2], 5.0]]
+
+
+def test_z_atoms_are_reset_with_the_molecule(window, antui):
+    """Indices chosen for one molecule were kept for the next; out of range they constrained electrode atoms."""
+    start = window.molecule.name
+    window.opt_data = dict(window.opt_data, Molecule = 'all, some only z', Molecule_z_atoms = [0, 1])
+    try:
+        window.combo.set('Toluene' if start != 'Toluene' else 'Benzene')
+        let_gui_refresh(window)
+        assert window.opt_data['Molecule_z_atoms'] == []
+        window.opt_data['Molecule_z_atoms'] = [window.molecule.N]
+        with pytest.raises(ValueError, match = 'not in the molecule'):
+            window.create_ant()
+    finally:
+        window.opt_data = dict(window.opt_data, Molecule = 'fix', Molecule_z_atoms = [])
+        window.combo.set(start)
+        let_gui_refresh(window)
+    assert antui.z_atom_indices('3, 1 1', 5) == [1, 3]
+    with pytest.raises(ValueError, match = r'\[7\] not in the molecule'):
+        antui.z_atom_indices('7', 5)
+
+
 def test_reselected_bottom_electrode_is_unchanged(window):
     """X4 through the real combobox: switch the bottom electrode away and back."""
     start = window.down_electrode.true_coordinates().copy()
