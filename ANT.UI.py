@@ -38,10 +38,12 @@ class Scale:
     def __init__(self, frame, name, from_n, to_n, resol):
        
         self.label = Label(frame,  text = f'{name} = 0', font = ('Arial', 12))
-        self.slider = Slider(frame, from_= from_n , to= to_n, number_of_steps=int((to_n-from_n)/resol),
+        # round, not int: (to - from)/resol can come out as 452.99999... and one step fewer would put the
+        # slider positions off the resol grid
+        self.slider = Slider(frame, from_= from_n , to= to_n, number_of_steps=max(1, round((to_n-from_n)/resol)),
                             width = 150, orientation='horizontal', command=self.update)
         self.slider_plus = Button(frame,  text = '+', width=5, command = self.Move_slider_plus)
-        self.slider_minus = Button(frame,  text = '-', width=5, command = self.Move_slider_minus)  
+        self.slider_minus = Button(frame,  text = '-', width=5, command = self.Move_slider_minus)
 
         self.label.pack(side = 'top', expand = True)
         self.slider_minus.pack(side = 'left')
@@ -50,26 +52,26 @@ class Scale:
 
         self.resol = resol
         self.name = name
-        if resol == 1:
-            self.decimals = 0
-        elif resol == .1:
-            self.decimals = 1
+        frac = f'{resol:g}'.partition('.')[2]
+        self.decimals = len(frac)
 
     def Move_slider_plus(self):
-        self.slider.set(self.slider.get()+self.resol)
-        self.update(self.slider.get()+self.resol)
+        self.set(self.get() + self.resol)
 
     def Move_slider_minus(self):
-        self.slider.set(self.slider.get()-self.resol)
-        self.update(self.slider.get()-self.resol)
+        self.set(self.get() - self.resol)
 
     def get(self):
         return float(self.slider.get())
     def update(self, val):
-        self.label.configure(text= f'{self.name} = {np.round(val, self.decimals)}')
+        '''Label shows the value the slider holds (callers pass the already snapped value).'''
+        txt = f'{float(val):.{self.decimals}f}'
+        if float(txt) == 0:
+            txt = f'{0:.{self.decimals}f}'      # no "-0.0"
+        self.label.configure(text= f'{self.name} = {txt}')
     def set(self,x):
         self.slider.set(x)
-        self.update(x)
+        self.update(self.get())
 
 
 
@@ -172,15 +174,18 @@ class xyz_object():
             temp = text.readline()
             if self.mol_flag and not ('PureMetalic' in self.name):
                 self.U = parse_u_line(temp)
-            self.poss = np.zeros((self.N, 3))
-            self.elements = np.zeros((self.N), dtype = '<U2')
-            line = text.readline()
-            i = 0
-            while line != '':
-                self.elements[i] = line.split()[0]
-                self.poss[i] = [float(x) for x in line.split()[1:] ]
-                line = text.readline()
-                i+=1
+            # blank lines (e.g. at the end of the file) are skipped; anything after the N atoms is ignored
+            atom_lines = [line.split() for line in text if line.strip()]
+        if len(atom_lines) < self.N:
+            raise ValueError(f'{route}: the first line says {self.N} atoms but the file has {len(atom_lines)} atom lines.')
+        self.poss = np.zeros((self.N, 3))
+        self.elements = np.zeros((self.N), dtype = '<U2')
+        for i, fields in enumerate(atom_lines[:self.N]):
+            try:
+                self.elements[i] = fields[0]
+                self.poss[i] = [float(x) for x in fields[1:4]]
+            except (ValueError, IndexError):
+                raise ValueError(f'{route}: atom line {i+1} should be "element x y z", not "{" ".join(fields)}".')
         self.CM = find_center(self.poss)
         self.poss = self.poss-self.CM
         self.CM = find_center(self.poss)
@@ -307,6 +312,21 @@ def optional_int(text, label):
         return int(text)
     except ValueError:
         raise ValueError(f'{label} must be an integer or empty (automatic), not "{text}".')
+
+def z_atom_indices(text, n_atoms):
+    '''Molecule atoms (0-based, as listed in the dialog) to relax only along z.'''
+    try:
+        indices = [int(x) for x in text.replace(',', ' ').split()]
+    except ValueError:
+        raise ValueError(f'z-only atoms: write atom indices separated by spaces, not "{text.strip()}".')
+    wrong = [i for i in indices if not 0 <= i < n_atoms]
+    if wrong:
+        raise ValueError(f'z-only atoms: {wrong} not in the molecule (indices 0 to {n_atoms-1}).')
+    return sorted(set(indices))
+
+def soc_unavailable(objs):
+    '''Metals of the junction that have no SOC factors (SOC inputs cannot be written for them).'''
+    return sorted({e for obj in objs for e in obj.elements if e in Electrode_elem and e not in SOC_PARAMS})
 
 def open_in_system(path):
     if sys.platform.startswith('win'):
@@ -485,7 +505,7 @@ class toplevel_opt():
         self.text_Nopt.pack(side = 'left', expand=True)
 
 
-        self.opt_in_ANT = BooleanVar()
+        self.opt_in_ANT = BooleanVar(value = opt_data['Opt_in_ANT'])   # reopening the dialog must not reset it
         self.check_opt_in_ANT = Checkbutton(self.frame_Nopt, text = 'Opt. in ANT', variable = self.opt_in_ANT, 
                                    onvalue = True, offvalue = False)
         self.check_opt_in_ANT.pack(side = 'left', expand=True)
@@ -540,6 +560,7 @@ class subtoplevel_opt():
         self.window.title("Choose z atoms")
 
         self.data_returner = returner
+        self.N = molecule.N
 
         #Display and write frames
         self.frame_text = Frame(self.window)
@@ -573,7 +594,7 @@ class subtoplevel_opt():
 
      
     def ok(self):
-        self.data_returner([int(x) for x in self.entry_id.get().split()])
+        self.data_returner(z_atom_indices(self.entry_id.get(), self.N))
         self.window.destroy()
         return
         
@@ -673,8 +694,20 @@ class toplevel_grid():
 
         self.data_returner = data_returner
         
+    def read_grid(self):
+        '''The grid as typed now (the preview refreshes only every 0.5 s and keeps the last valid values).'''
+        try:
+            x = float(self.text_xmin.get()), float(self.text_xmax.get()), int(self.text_nx.get())
+            y = float(self.text_ymin.get()), float(self.text_ymax.get()), int(self.text_ny.get())
+        except ValueError:
+            raise ValueError('Grid Assistant: x and y limits must be numbers (decimal point, not comma) '
+                             'and nx, ny integers.')
+        if x[2] < 1 or y[2] < 1:
+            raise ValueError('Grid Assistant: nx and ny must be at least 1.')
+        return [list(x), list(y), self.z]
+
     def ok(self):
-        self.data_returner([[self.xmin, self.xmax, self.nx], [self.ymin, self.ymax, self.ny], self.z])
+        self.data_returner(self.read_grid())      # on an error the window stays open to correct it
         self.window.after_cancel(self.after_process)
         self.window.destroy()
         return
@@ -1199,7 +1232,14 @@ class tkinter_window():
     def create_reax(self):
         return self.export(Create_reax_output, kind = 'xyz')
 
+    def check_soc(self):
+        missing = soc_unavailable([self.down_electrode, self.molecule, self.up_electrode])
+        if missing:
+            raise ValueError(f'No SOC factors for {", ".join(missing)}: SOC inputs can be written for '
+                             f'{", ".join(SOC_PARAMS)} only.')
+
     def create_soc(self):
+        self.check_soc()
         return self.export(Create_output_soc, self.opt_data, self.DFT_opts, kind = 'SOC')
 
     def get_u(self):
@@ -1235,6 +1275,8 @@ class tkinter_window():
 
     def create_rot_dft(self, frm, to, by, top, mol, bottom, SOC):
         angles = rotation_angles(frm, to, by)
+        if SOC:
+            self.check_soc()
         boolean_data = (bottom, mol, top)
         return self.export(Create_rot_output, angles, boolean_data, SOC, self.opt_data, self.DFT_opts,
                            kind = 'rotation', params = {'angles': angles, 'components': boolean_data, 'soc': SOC})
@@ -1246,12 +1288,14 @@ class tkinter_window():
         self.DFT_opts['EABS'] = self.EABS.get()
 
         self.DFT_opts['DFTU'] = self.DFT_U.get()
+        # configure(state=...): customtkinter ignores widget['state'] = ...
         if self.DFT_opts['Functional'] not in self.molecule.U.keys():
             self.check_U.deselect()
-            self.check_U['state'] = DISABLED
+            if self.check_U.cget('state') != DISABLED:
+                self.check_U.configure(state = DISABLED)
             self.DFT_opts['DFTU'] = False
-        if self.DFT_opts['Functional'] in self.molecule.U.keys(): 
-            self.check_U['state'] = NORMAL
+        elif self.check_U.cget('state') != NORMAL:
+            self.check_U.configure(state = NORMAL)
         return
 
     def scene(self):
@@ -1259,46 +1303,56 @@ class tkinter_window():
         return [(obj.name, tuple(obj.elements), tuple(obj.spatial_coords), tuple(obj.euler_angles))
                 for obj in (self.molecule, self.up_electrode, self.down_electrode)]
 
+    def load_selected(self, combo, current, route):
+        '''Read the file chosen in a combobox. If it cannot be read, put the combobox back on the current
+        object (so the error is shown once, not every cycle) and raise.'''
+        try:
+            return xyz_object(f'{route}/{combo.get()}.xyz')
+        except Exception:
+            combo.set(current.name)
+            raise
+
     def Update(self):
-        change_flag = False
-        
+        # Always reschedule: an error here (e.g. an unreadable molecule file) used to stop the refresh loop
+        try:
+            self.refresh()
+        finally:
+            self.after_process = root.after(500, self.Update)
+
+    def refresh(self):
         if self.molecule.name != self.combo.get():
+            molecule = self.load_selected(self.combo, self.molecule, 'Molecules')   # before removing the old controls
             self.mol_controls.destroy()
-            self.molecule = xyz_object('Molecules/'+self.combo.get()+'.xyz')
+            self.molecule = molecule
             self.mol_controls = object_controls(self.molecule, self.frame_3)
-            
-            change_flag = True
-                    
+            # z-only atoms are indices of the previous molecule
+            self.opt_data = dict(self.opt_data, Molecule_z_atoms = [])
+
         if self.up_electrode.elements[0] != self.combo_top_elem.get():
             self.up_electrode.change_elem(self.combo_top_elem.get())
-            
-            change_flag = True
-        
+
         if self.up_electrode.name != self.combo_top_type.get():
+            electrode = self.load_selected(self.combo_top_type, self.up_electrode, 'ElectrodesDFT')
             self.top_controls.destroy()
-            self.up_electrode = xyz_object('ElectrodesDFT/'+self.combo_top_type.get()+'.xyz')
+            self.up_electrode = electrode
             self.top_controls = object_controls(self.up_electrode, self.frame_0)
 
         if self.down_electrode.elements[0] != self.combo_bottom_elem.get():
             self.down_electrode.change_elem(self.combo_bottom_elem.get())
-            
-            change_flag = True
 
         if self.down_electrode.name != self.combo_bottom_type.get():
-            self.down_electrode = place_bottom_electrode(xyz_object('ElectrodesDFT/'+self.combo_bottom_type.get()+'.xyz'))
+            self.down_electrode = place_bottom_electrode(self.load_selected(self.combo_bottom_type, self.down_electrode, 'ElectrodesDFT'))
 
-                    
-        if change_flag and SOC_FLAG:
-            if not self.up_electrode.elements[0] in SOC_PARAMS.keys() or not self.down_electrode.elements[0] in SOC_PARAMS.keys():
-                self.soc_btn['state'] = DISABLED
-
-            elif self.up_electrode.elements[0] in SOC_PARAMS.keys() and self.down_electrode.elements[0] in SOC_PARAMS.keys():
-                self.soc_btn['state'] = NORMAL
+        if SOC_FLAG:
+            # configure(state=...): customtkinter ignores widget['state'] = ...
+            state = DISABLED if soc_unavailable([self.down_electrode, self.molecule, self.up_electrode]) else NORMAL
+            if self.soc_btn.cget('state') != state:
+                self.soc_btn.configure(state = state)
 
         self.update_DFT(None)
         self.mol_controls.update()
         self.top_controls.update()
-        
+
         # A redraw blocks the window for a few tenths of a second, so only when the junction changed: on every
         # cycle, dragging the window jumped and could snap back. Drawing on a closed viewer crashes Tk.
         scene = self.scene()
@@ -1310,7 +1364,6 @@ class tkinter_window():
             self.down_electrode.plot_object(ax)
             set_axes_equal(ax)
             fig.canvas.draw()
-        self.after_process = root.after(500, self.Update)
 
 #%% MAIN
 

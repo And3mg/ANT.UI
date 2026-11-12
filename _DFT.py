@@ -129,6 +129,9 @@ def optimization_protocol(opt_data, Semi_infinite_layer, z_order, counts):
     if opt_data['Molecule'] not in ['all', 'fix', 'z']:
         # Molecule_z_atoms index the molecule file; z_order maps output position -> input atom
         for x in opt_data['Molecule_z_atoms']:
+            if not 0 <= x < Nmol:   # e.g. indices chosen for another molecule: would constrain an electrode atom
+                raise ValueError(f'z-only atom {x} is not in the molecule (indices 0 to {Nmol-1}); '
+                                 'choose the atoms again in Optimization Options.')
             opt_resume[np.where(z_order == Nbtm + x)[0][0]] = 'z'
     return opt_resume
 

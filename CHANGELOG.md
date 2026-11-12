@@ -32,6 +32,20 @@ calculations should be regenerated.
 - Dragging the control window could abort Python on machines with Qt bindings installed, because matplotlib then
   opened the 3D viewer with Qt. The viewer now always uses Tk, like the controls. Closing the viewer leaves the
   controls working.
+- The + and - buttons of the position and angle sliders labelled the new value one step too far, so the label
+  seemed to jump by 0.2 (or 0.3 when changing direction) although the geometry moved by 0.1. With a `ZMAX` that is
+  not a whole number of steps from -20, the slider positions were also off the 0.1 A grid.
+- A molecule file with a blank line (e.g. at the end) could not be read, and choosing it removed the molecule
+  controls and stopped the window from refreshing until restart. Blank lines are now skipped; an unreadable file
+  gives one error message and the previous molecule stays selected.
+- The SOC button was never disabled (customtkinter ignores `widget['state'] = ...`), so Ni junctions failed with
+  `KeyError: 'Ni'`. It is now disabled when a metal has no SOC factors, and SOC exports explain why.
+  The DFT+U box is now also disabled for functionals without a stored U.
+- Reopening Optimization Options and pressing Ok switched "Opt. in ANT" off.
+- Grid Assistant: Ok used the values of the last preview refresh (every 0.5 s) and silently kept the previous
+  value when an entry was invalid (e.g. a decimal comma). It now reads the entries and reports invalid ones.
+- z-only atoms were kept when another molecule was chosen; indices beyond the new molecule constrained electrode
+  atoms instead. They are now cleared with the molecule, and invalid indices are refused.
 - The 3D viewer redraws only when the junction changes. It used to redraw every cycle, which blocked the controls
   and made a dragged window jump or snap back to where it started.
 - Molecule comment lines: only "FUNCTIONAL U" pairs are read; other text (e.g. leftover `Energy:` lines in
