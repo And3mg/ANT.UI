@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use ANT.UI, please cite the article below and the archived version of the software you used."
 title: "ANT.UI"
 version: 1.1.0
-date-released: 2026-11-15
+date-released: 2026-11-13
 license: MIT
 repository-code: "https://github.com/And3mg/ANT.UI"
 type: software
