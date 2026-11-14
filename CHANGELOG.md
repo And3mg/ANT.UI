@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Documentation
+- User manual: Fig. 8 (the paper's Fig. 2) updated. Panel (a) shows the conductance with the spin-summed
+  transmission and all 20 configurations; panel (b) has the tight-criteria points at all angles; panel (c) uses two
+  recomputed grid points.
+
 ## 1.1.0 (2026-11)
 
 Revision for the SoftwareX review. Inputs written by 1.0.0 for SOC, mixed-metal, Pt/Ni or optimisation-chain
